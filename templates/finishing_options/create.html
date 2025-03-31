@@ -1,0 +1,90 @@
+{% extends "layout.html" %}
+
+{% block title %}Add Finishing Option - Print Order Management System{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Add Finishing Option</h1>
+    <a href="{{ url_for('finishing_options_index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Finishing Options
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form action="{{ url_for('finishing_options_create') }}" method="post">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="name" class="form-label">Name *</label>
+                    <input type="text" name="name" id="name" class="form-control" required>
+                    <div class="form-text">Enter the finishing option name</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="category" class="form-label">Category *</label>
+                    <select name="category" id="category" class="form-select" required>
+                        <option value="">-- Select Category --</option>
+                        <option value="Binding">Binding</option>
+                        <option value="Lamination">Lamination</option>
+                        <option value="Folding">Folding</option>
+                        <option value="Cutting">Cutting</option>
+                        <option value="Drilling">Drilling</option>
+                        <option value="Stapling">Stapling</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea name="description" id="description" class="form-control" rows="2"></textarea>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="base_price" class="form-label">Base Price *</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" name="base_price" id="base_price" class="form-control" step="0.01" min="0" value="0.00" required>
+                    </div>
+                    <div class="form-text">Starting price for this finishing option</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="price_per_piece" class="form-label">Price per Piece</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" name="price_per_piece" id="price_per_piece" class="form-control" step="0.01" min="0" value="0.00">
+                    </div>
+                    <div class="form-text">Additional cost per piece</div>
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="price_per_sqft" class="form-label">Price per Square Foot</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" name="price_per_sqft" id="price_per_sqft" class="form-control" step="0.01" min="0" value="0.00">
+                    </div>
+                    <div class="form-text">For large format items (e.g., lamination)</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="minimum_price" class="form-label">Minimum Price</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" name="minimum_price" id="minimum_price" class="form-control" step="0.01" min="0" value="0.00">
+                    </div>
+                    <div class="form-text">Minimum charge for this finishing option</div>
+                </div>
+            </div>
+            
+            <div class="text-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save me-1"></i> Save Finishing Option
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

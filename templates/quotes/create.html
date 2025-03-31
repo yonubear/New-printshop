@@ -1,0 +1,124 @@
+{% extends "layout.html" %}
+
+{% block title %}Create New Quote - Print Order Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .custom-size-fields {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Create New Quote</h1>
+    <a href="{{ url_for('quotes_index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Quotes
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Quote Details -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quote Details</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('quotes_create') }}" method="post">
+                    <div class="mb-3">
+                        <label for="customer_id" class="form-label">Customer *</label>
+                        <select name="customer_id" id="customer_id" class="form-select" required>
+                            <option value="">-- Select Customer --</option>
+                            {% for customer in customers %}
+                                <option value="{{ customer.id }}">
+                                    {{ customer.name }} {% if customer.company %}({{ customer.company }}){% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="quote_number" class="form-label">Quote Number</label>
+                        <div class="input-group">
+                            <input type="text" name="quote_number" id="quote_number" class="form-control" placeholder="Leave blank for auto-generated number">
+                            <button class="btn btn-primary barcode-scan-btn" type="button" data-target="quote_number">
+                                <i class="bi bi-upc-scan"></i> Scan
+                            </button>
+                        </div>
+                        <div class="form-text">Optional. Custom quote number, scan barcode, or leave blank for auto-generated.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Quote Title *</label>
+                        <input type="text" name="title" id="title" class="form-control" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea name="description" id="description" class="form-control" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="valid_until" class="form-label">Valid Until</label>
+                        <input type="date" name="valid_until" id="valid_until" class="form-control">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select name="status" id="status" class="form-select">
+                            <option value="draft" selected>Draft</option>
+                            <option value="sent">Sent</option>
+                            <option value="accepted">Accepted</option>
+                            <option value="declined">Declined</option>
+                            <option value="expired">Expired</option>
+                        </select>
+                    </div>
+                    
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i> Create Quote
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Instructions -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Create a New Quote</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h5><i class="bi bi-info-circle me-2"></i> Quote Creation Instructions</h5>
+                    <p>To create a new quote, follow these steps:</p>
+                    <ol class="mb-0">
+                        <li>Select a customer from the dropdown menu</li>
+                        <li>Enter a custom quote number or leave blank for auto-generated</li>
+                        <li>Enter a title and optional description for the quote</li>
+                        <li>Set a valid until date (optional)</li>
+                        <li>Click "Create Quote" to save</li>
+                        <li>After creating the quote, you'll be able to add items on the next screen</li>
+                    </ol>
+                </div>
+                
+                <div class="alert alert-warning mt-3">
+                    <h5><i class="bi bi-exclamation-triangle me-2"></i> Important Notes</h5>
+                    <ul class="mb-0">
+                        <li>Quotes start in "Draft" status by default</li>
+                        <li>Once created, you can add items with detailed specifications</li>
+                        <li>You can always edit the quote details later</li>
+                        <li>When the quote is complete, you can change the status to "Sent"</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

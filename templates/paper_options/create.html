@@ -1,0 +1,83 @@
+{% extends "layout.html" %}
+
+{% block title %}Add Paper Option - Print Order Management System{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Add Paper Option</h1>
+    <a href="{{ url_for('paper_options_index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Paper Options
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form action="{{ url_for('paper_options_create') }}" method="post">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="name" class="form-label">Name *</label>
+                    <input type="text" name="name" id="name" class="form-control" required>
+                    <div class="form-text">Enter the paper name or description</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="category" class="form-label">Category *</label>
+                    <select name="category" id="category" class="form-select" required>
+                        <option value="">-- Select Category --</option>
+                        <option value="Bond">Bond</option>
+                        <option value="Text">Text</option>
+                        <option value="Cover">Cover</option>
+                        <option value="Card Stock">Card Stock</option>
+                        <option value="Specialty">Specialty</option>
+                        <option value="Coated">Coated</option>
+                        <option value="Uncoated">Uncoated</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea name="description" id="description" class="form-control" rows="2"></textarea>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="weight" class="form-label">Weight</label>
+                    <input type="text" name="weight" id="weight" class="form-control" placeholder="e.g., 20#, 80#, 100#">
+                </div>
+                <div class="col-md-4">
+                    <label for="size" class="form-label">Size</label>
+                    <select name="size" id="size" class="form-select">
+                        <option value="">-- Select Size --</option>
+                        <option value="Letter">Letter (8.5 x 11)</option>
+                        <option value="Legal">Legal (8.5 x 14)</option>
+                        <option value="Tabloid">Tabloid (11 x 17)</option>
+                        <option value="12x18">12 x 18</option>
+                        <option value="13x19">13 x 19</option>
+                        <option value="Custom">Custom</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="color" class="form-label">Color</label>
+                    <input type="text" name="color" id="color" class="form-control" placeholder="e.g., White, Cream, Blue">
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="price_per_sheet" class="form-label">Price per Sheet *</label>
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="number" name="price_per_sheet" id="price_per_sheet" class="form-control" step="0.01" min="0" required>
+                </div>
+            </div>
+            
+            <div class="text-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save me-1"></i> Save Paper Option
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

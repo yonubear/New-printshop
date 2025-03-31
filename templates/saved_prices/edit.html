@@ -1,0 +1,273 @@
+{% extends 'layout.html' %}
+
+{% block title %}Edit Price{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle template selector section visibility
+        const templateCheckbox = document.getElementById('is_template');
+        const templateMaterialsSection = document.getElementById('template_materials_section');
+        
+        if (templateCheckbox && templateMaterialsSection) {
+            templateCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    templateMaterialsSection.classList.remove('d-none');
+                } else {
+                    templateMaterialsSection.classList.add('d-none');
+                }
+            });
+        }
+        
+        // Setup the material selector
+        const addMaterialBtn = document.getElementById('add_template_material');
+        if (addMaterialBtn) {
+            addMaterialBtn.addEventListener('click', function() {
+                addMaterialToTemplate();
+            });
+        }
+        
+        // Function to add a selected material to the template list
+        function addMaterialToTemplate() {
+            const materialSelect = document.getElementById('material_select');
+            const quantityInput = document.getElementById('material_quantity');
+            
+            if (!materialSelect || !quantityInput) {
+                console.error("Material selector inputs not found");
+                return;
+            }
+            
+            const materialId = materialSelect.value;
+            const materialName = materialSelect.options[materialSelect.selectedIndex].text;
+            const quantity = quantityInput.value;
+            
+            if (!materialId || materialId === "0" || quantity <= 0) {
+                alert("Please select a material and specify a valid quantity");
+                return;
+            }
+            
+            // Create a new item in the material list
+            const container = document.getElementById('selected_materials_container');
+            if (!container) {
+                console.error("Material container not found");
+                return;
+            }
+            
+            // Check if this material is already in the list
+            const existingMaterial = document.querySelector(`input[value="${materialId}"][name="template_material_ids[]"]`);
+            if (existingMaterial) {
+                // Just update the quantity
+                const row = existingMaterial.closest('.selected-material-item');
+                const quantitySpan = row.querySelector('.material-quantity');
+                if (quantitySpan) {
+                    const currentQty = parseFloat(quantitySpan.getAttribute('data-quantity') || 0);
+                    const newQty = currentQty + parseFloat(quantity);
+                    quantitySpan.textContent = newQty.toFixed(2);
+                    quantitySpan.setAttribute('data-quantity', newQty);
+                    row.querySelector('input[name="template_material_quantities[]"]').value = newQty;
+                }
+            } else {
+                // Add new material to the list
+                const materialItem = document.createElement('div');
+                materialItem.className = 'selected-material-item d-flex justify-content-between align-items-center p-2 mb-2 border rounded';
+                materialItem.innerHTML = `
+                    <input type="hidden" name="template_material_ids[]" value="${materialId}">
+                    <input type="hidden" name="template_material_quantities[]" value="${quantity}">
+                    <div>
+                        <strong>${materialName}</strong>
+                        <span class="badge bg-secondary ms-2 material-quantity" data-quantity="${quantity}">${quantity}</span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-material">
+                        <i class="bi bi-x"></i>
+                    </button>
+                `;
+                
+                container.appendChild(materialItem);
+                
+                // Add remove listener
+                const removeBtn = materialItem.querySelector('.remove-material');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', function() {
+                        materialItem.remove();
+                    });
+                }
+            }
+            
+            // Reset the form
+            quantityInput.value = "1";
+        }
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>Edit Saved Price</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('saved_prices_index') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Prices
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <form method="POST" action="{{ url_for('saved_prices_edit', id=saved_price.id) }}">
+                <div class="row">
+                    <!-- Left column for price information -->
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Basic Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="name" name="name" value="{{ saved_price.name }}" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="sku" class="form-label">SKU/Item Code</label>
+                                    <input type="text" class="form-control" id="sku" name="sku" value="{{ saved_price.sku }}">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Description</label>
+                                    <textarea class="form-control" id="description" name="description" rows="3">{{ saved_price.description }}</textarea>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="category" class="form-label">Category <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="category" name="category" required>
+                                        <option value="print_job" {% if saved_price.category == 'print_job' %}selected{% endif %}>Print Job</option>
+                                        <option value="paper" {% if saved_price.category == 'paper' %}selected{% endif %}>Paper</option>
+                                        <option value="material" {% if saved_price.category == 'material' %}selected{% endif %}>Material</option>
+                                        <option value="service" {% if saved_price.category == 'service' %}selected{% endif %}>Service</option>
+                                        <option value="other" {% if saved_price.category == 'other' %}selected{% endif %}>Other</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="unit" class="form-label">Unit <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="unit" name="unit" required>
+                                        <option value="each" {% if saved_price.unit == 'each' %}selected{% endif %}>Each</option>
+                                        <option value="sheet" {% if saved_price.unit == 'sheet' %}selected{% endif %}>Sheet</option>
+                                        <option value="sqft" {% if saved_price.unit == 'sqft' %}selected{% endif %}>Sq. Foot</option>
+                                        <option value="hour" {% if saved_price.unit == 'hour' %}selected{% endif %}>Hour</option>
+                                        <option value="box" {% if saved_price.unit == 'box' %}selected{% endif %}>Box</option>
+                                        <option value="pack" {% if saved_price.unit == 'pack' %}selected{% endif %}>Pack</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="cost_price" class="form-label">Cost Price</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">$</span>
+                                                <input type="number" class="form-control" id="cost_price" name="cost_price" min="0" step="0.01" value="{{ saved_price.cost_price }}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="price" class="form-label">Retail Price <span class="text-danger">*</span></label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">$</span>
+                                                <input type="number" class="form-control" id="price" name="price" min="0" step="0.01" value="{{ saved_price.price }}" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="is_template" name="is_template" {% if saved_price.is_template %}checked{% endif %}>
+                                    <label class="form-check-label" for="is_template">
+                                        This is a template with materials
+                                    </label>
+                                    <small class="form-text text-muted d-block">Check this if this is a preconfigured template with material requirements.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right column for template materials selector -->
+                    <div class="col-md-6">
+                        <div id="template_materials_section" class="card mb-4 {% if not saved_price.is_template %}d-none{% endif %}">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Template Materials</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-info mb-3">
+                                    <p class="mb-0"><i class="bi bi-info-circle"></i> Select materials to include in this template. These will appear on pull sheets.</p>
+                                </div>
+                                
+                                <!-- Material selector -->
+                                <div class="card bg-light mb-3">
+                                    <div class="card-body">
+                                        <h6 class="mb-3">Add Material to Template</h6>
+                                        <div class="row g-2 align-items-end">
+                                            <div class="col-md-7">
+                                                <label for="material_select" class="form-label">Select Material</label>
+                                                <select class="form-select" id="material_select">
+                                                    <option value="0">-- Select a material --</option>
+                                                    {% for material in materials %}
+                                                        <option value="{{ material.id }}">{{ material.name }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label for="material_quantity" class="form-label">Quantity</label>
+                                                <input type="number" class="form-control" id="material_quantity" min="0.01" step="0.01" value="1">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <button type="button" class="btn btn-primary w-100" id="add_template_material">
+                                                    <i class="bi bi-plus"></i> Add
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Selected materials list -->
+                                <div>
+                                    <h6 class="mb-3">Selected Materials</h6>
+                                    <div id="selected_materials_container" class="mb-3">
+                                        {% if template_materials %}
+                                            {% for tm in template_materials %}
+                                                <div class="selected-material-item d-flex justify-content-between align-items-center p-2 mb-2 border rounded">
+                                                    <input type="hidden" name="template_material_ids[]" value="{{ tm.material_id }}">
+                                                    <input type="hidden" name="template_material_quantities[]" value="{{ tm.quantity }}">
+                                                    <div>
+                                                        <strong>{{ tm.material_name }}</strong>
+                                                        <span class="badge bg-secondary ms-2 material-quantity" data-quantity="{{ tm.quantity }}">{{ tm.quantity }}</span>
+                                                    </div>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger remove-material">
+                                                        <i class="bi bi-x"></i>
+                                                    </button>
+                                                </div>
+                                            {% endfor %}
+                                        {% else %}
+                                            <div class="text-muted text-center py-3">
+                                                <i class="bi bi-info-circle"></i> No materials added yet
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <button type="reset" class="btn btn-outline-secondary">Reset</button>
+                    <button type="submit" class="btn btn-primary">Update Price</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

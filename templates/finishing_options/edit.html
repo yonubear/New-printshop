@@ -1,0 +1,90 @@
+{% extends "layout.html" %}
+
+{% block title %}Edit Finishing Option - Print Order Management System{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Edit Finishing Option</h1>
+    <a href="{{ url_for('finishing_options_index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Finishing Options
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form action="{{ url_for('finishing_options_edit', id=finishing_option.id) }}" method="post">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="name" class="form-label">Name *</label>
+                    <input type="text" name="name" id="name" class="form-control" value="{{ finishing_option.name }}" required>
+                    <div class="form-text">Enter the finishing option name</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="category" class="form-label">Category *</label>
+                    <select name="category" id="category" class="form-select" required>
+                        <option value="">-- Select Category --</option>
+                        <option value="Binding" {% if finishing_option.category == 'Binding' %}selected{% endif %}>Binding</option>
+                        <option value="Lamination" {% if finishing_option.category == 'Lamination' %}selected{% endif %}>Lamination</option>
+                        <option value="Folding" {% if finishing_option.category == 'Folding' %}selected{% endif %}>Folding</option>
+                        <option value="Cutting" {% if finishing_option.category == 'Cutting' %}selected{% endif %}>Cutting</option>
+                        <option value="Drilling" {% if finishing_option.category == 'Drilling' %}selected{% endif %}>Drilling</option>
+                        <option value="Stapling" {% if finishing_option.category == 'Stapling' %}selected{% endif %}>Stapling</option>
+                        <option value="Other" {% if finishing_option.category == 'Other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea name="description" id="description" class="form-control" rows="2">{{ finishing_option.description }}</textarea>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="base_price" class="form-label">Base Price *</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" name="base_price" id="base_price" class="form-control" step="0.01" min="0" value="{{ finishing_option.base_price }}" required>
+                    </div>
+                    <div class="form-text">Starting price for this finishing option</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="price_per_piece" class="form-label">Price per Piece</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" name="price_per_piece" id="price_per_piece" class="form-control" step="0.01" min="0" value="{{ finishing_option.price_per_piece }}">
+                    </div>
+                    <div class="form-text">Additional cost per piece</div>
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="price_per_sqft" class="form-label">Price per Square Foot</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" name="price_per_sqft" id="price_per_sqft" class="form-control" step="0.01" min="0" value="{{ finishing_option.price_per_sqft }}">
+                    </div>
+                    <div class="form-text">For large format items (e.g., lamination)</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="minimum_price" class="form-label">Minimum Price</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" name="minimum_price" id="minimum_price" class="form-control" step="0.01" min="0" value="{{ finishing_option.minimum_price }}">
+                    </div>
+                    <div class="form-text">Minimum charge for this finishing option</div>
+                </div>
+            </div>
+            
+            <div class="text-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save me-1"></i> Update Finishing Option
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
