@@ -43,7 +43,7 @@
     </div>
 </div>
 
-<!-- Quote Statistics -->
+<!-- Quote & Report Statistics -->
 <div class="row mb-4">
     <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
         <a href="{{ url_for('quotes_index') }}" class="text-decoration-none">
@@ -52,6 +52,50 @@
                 <div class="stats-title">
                     <i class="bi bi-file-earmark-text me-1"></i> Active Quotes
                 </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+        <a href="{{ url_for('reports_profitability') }}" class="text-decoration-none">
+            <div class="card stats-card bg-teal text-white">
+                <div class="stats-icon"><i class="bi bi-graph-up"></i></div>
+                <div class="stats-title">Profitability Report</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+        <a href="{{ url_for('reports_accounts_receivable') }}" class="text-decoration-none">
+            <div class="card stats-card bg-orange text-white">
+                <div class="stats-icon"><i class="bi bi-cash"></i></div>
+                <div class="stats-title">Accounts Receivable</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+        <a href="{{ url_for('reports_materials') }}" class="text-decoration-none">
+            <div class="card stats-card bg-cyan text-white">
+                <div class="stats-icon"><i class="bi bi-box-seam"></i></div>
+                <div class="stats-title">Materials Report</div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- Customer Reports Row -->
+<div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+        <a href="{{ url_for('reports_customers') }}" class="text-decoration-none">
+            <div class="card stats-card bg-indigo text-white">
+                <div class="stats-icon"><i class="bi bi-people"></i></div>
+                <div class="stats-title">Customer Reports</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+        <a href="{{ url_for('reports_time_period') }}" class="text-decoration-none">
+            <div class="card stats-card bg-info text-white">
+                <div class="stats-icon"><i class="bi bi-calendar-range"></i></div>
+                <div class="stats-title">Time Period Report</div>
             </div>
         </a>
     </div>
@@ -158,6 +202,26 @@
                     </a>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export System -->
+<div class="card mt-4">
+    <div class="card-header bg-dark text-white">
+        <h5 class="mb-0"><i class="bi bi-cloud-download me-2"></i>System Export</h5>
+    </div>
+    
+    <div class="card-body">
+        <div class="alert alert-info">
+            <p><strong>Export Package Available:</strong> A complete export package has been created for deploying to your Nextcloud environment.</p>
+            <p class="mb-0"><small>Package includes all application code, templates, and configuration files needed for deployment.</small></p>
+        </div>
+        
+        <div class="d-grid">
+            <a href="{{ url_for('download_export', filename='printshop_export_20250323_004821.zip') }}" class="btn btn-success">
+                <i class="bi bi-download me-2"></i>Download Nextcloud Export Package
+            </a>
         </div>
     </div>
 </div>

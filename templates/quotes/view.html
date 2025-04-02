@@ -199,6 +199,10 @@
                                             <small>Size: {{ item.size }}</small>
                                         {% endif %}
                                         
+                                        {% if item.finish_size %}
+                                            <br><small>Finish Size: {{ item.finish_size }}</small>
+                                        {% endif %}
+                                        
                                         {% if item.color_type %}
                                         <br><small>Color: {{ item.color_type }}</small>
                                         {% endif %}

@@ -213,6 +213,23 @@
                     
                     <div class="row mb-3">
                         <div class="col-md-4">
+                            <label for="finish_size" class="form-label">Finish Size</label>
+                            <select name="finish_size" id="finish_size" class="form-select">
+                                <option value="">-- Select Finish Size --</option>
+                                <option value="Letter (8.5x11)">Letter (8.5x11)</option>
+                                <option value="Half Letter (5.5x8.5)">Half Letter (5.5x8.5)</option>
+                                <option value="Legal (8.5x14)">Legal (8.5x14)</option>
+                                <option value="Half Legal (7x8.5)">Half Legal (7x8.5)</option>
+                                <option value="Tabloid (11x17)">Tabloid (11x17)</option>
+                                <option value="Half Tabloid (8.5x11)">Half Tabloid (8.5x11)</option>
+                                <option value="Custom">Custom</option>
+                            </select>
+                            <small class="text-muted">Specify if the item will be cut down to a different size</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
                             <label for="color_type" class="form-label">Color *</label>
                             <select name="color_type" id="color_type" class="form-select" required>
                                 <option value="">-- Select Color --</option>
@@ -248,16 +265,9 @@
                         <label for="paper_type" class="form-label">Paper Type</label>
                         <select name="paper_type" id="paper_type" class="form-select">
                             <option value="">-- Select Paper Type --</option>
-                            {% for option in paper_options %}
-                                <option value="{{ option.name }}" data-price="{{ option.price_per_sheet }}">
-                                    {{ option.name }} - {{ option.description or '' }}
-                                </option>
+                            {% for paper in paper_options %}
+                            <option value="{{ paper.id }}">{{ paper.name }} ({{ paper.size }}, {{ paper.weight }})</option>
                             {% endfor %}
-                            <option value="Matte">Matte</option>
-                            <option value="Glossy">Glossy</option>
-                            <option value="Satin">Satin</option>
-                            <option value="Recycled">Recycled</option>
-                            <option value="Cardstock">Cardstock</option>
                         </select>
                     </div>
                     
@@ -279,46 +289,70 @@
                                     </div>
                                 </div>
                             {% else %}
-                                <!-- If no finishing options from database, show default ones -->
+                                <!-- If no finishing options from database, show default ones with pricing data -->
                                 <div class="col-md-4 mb-2">
                                     <div class="form-check">
                                         <input class="form-check-input finishing-option" type="checkbox" name="finishing_options" 
-                                               value="Cutting" id="finishing_cutting">
+                                               value="Cutting" id="finishing_cutting"
+                                               data-base-price="5.00"
+                                               data-per-piece="0.10"
+                                               data-per-sqft="0.00"
+                                               data-minimum="5.00">
                                         <label class="form-check-label" for="finishing_cutting">Cutting</label>
                                     </div>
                                 </div>
                                 <div class="col-md-4 mb-2">
                                     <div class="form-check">
                                         <input class="form-check-input finishing-option" type="checkbox" name="finishing_options" 
-                                               value="Folding" id="finishing_folding">
+                                               value="Folding" id="finishing_folding"
+                                               data-base-price="5.00"
+                                               data-per-piece="0.05"
+                                               data-per-sqft="0.00"
+                                               data-minimum="5.00">
                                         <label class="form-check-label" for="finishing_folding">Folding</label>
                                     </div>
                                 </div>
                                 <div class="col-md-4 mb-2">
                                     <div class="form-check">
                                         <input class="form-check-input finishing-option" type="checkbox" name="finishing_options" 
-                                               value="Stapling" id="finishing_stapling">
+                                               value="Stapling" id="finishing_stapling"
+                                               data-base-price="2.00"
+                                               data-per-piece="0.05"
+                                               data-per-sqft="0.00"
+                                               data-minimum="2.00">
                                         <label class="form-check-label" for="finishing_stapling">Stapling</label>
                                     </div>
                                 </div>
                                 <div class="col-md-4 mb-2">
                                     <div class="form-check">
                                         <input class="form-check-input finishing-option" type="checkbox" name="finishing_options" 
-                                               value="Binding" id="finishing_binding">
+                                               value="Binding" id="finishing_binding"
+                                               data-base-price="10.00"
+                                               data-per-piece="0.50"
+                                               data-per-sqft="0.00"
+                                               data-minimum="10.00">
                                         <label class="form-check-label" for="finishing_binding">Binding</label>
                                     </div>
                                 </div>
                                 <div class="col-md-4 mb-2">
                                     <div class="form-check">
                                         <input class="form-check-input finishing-option" type="checkbox" name="finishing_options" 
-                                               value="Lamination" id="finishing_lamination">
+                                               value="Lamination" id="finishing_lamination"
+                                               data-base-price="15.00"
+                                               data-per-piece="1.00"
+                                               data-per-sqft="0.50"
+                                               data-minimum="15.00">
                                         <label class="form-check-label" for="finishing_lamination">Lamination</label>
                                     </div>
                                 </div>
                                 <div class="col-md-4 mb-2">
                                     <div class="form-check">
                                         <input class="form-check-input finishing-option" type="checkbox" name="finishing_options" 
-                                               value="Drilling" id="finishing_drilling">
+                                               value="Drilling" id="finishing_drilling"
+                                               data-base-price="7.50"
+                                               data-per-piece="0.15"
+                                               data-per-sqft="0.00"
+                                               data-minimum="7.50">
                                         <label class="form-check-label" for="finishing_drilling">Drilling</label>
                                     </div>
                                 </div>
@@ -346,6 +380,15 @@
                                 <span class="input-group-text">$</span>
                                 <input type="text" id="total_price" class="form-control" value="0.00" readonly>
                             </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <button type="button" id="calculate-price" class="btn btn-secondary">
+                                <i class="bi bi-calculator me-1"></i> Calculate Price Based on Options
+                            </button>
+                            <small class="text-muted d-block mt-1">This will calculate price based on paper and print costs</small>
                         </div>
                     </div>
                     
@@ -407,7 +450,12 @@
                                         
                                         {% if item.paper_type or item.paper_weight %}
                                         <br>Paper: 
-                                            {% if item.paper_type %}{{ item.paper_type }}{% endif %}
+                                            {% for paper in paper_options %}
+                                                {% if paper.id|string == item.paper_type|string %}
+                                                    {{ paper.name }} ({{ paper.size }}, {{ paper.weight }})
+                                                {% endif %}
+                                            {% endfor %}
+                                            {% if not item.paper_type|int %}{{ item.paper_type }}{% endif %}
                                             {% if item.paper_weight %} {{ item.paper_weight }}{% endif %}
                                         {% endif %}
                                         
@@ -473,16 +521,58 @@ document.addEventListener('DOMContentLoaded', function() {
     const quantityField = document.getElementById('quantity');
     const unitPriceField = document.getElementById('unit_price');
     const totalPriceField = document.getElementById('total_price');
+    const finishingOptions = document.querySelectorAll('.finishing-option');
     
     function updateTotalPrice() {
         const quantity = parseFloat(quantityField.value) || 0;
         const unitPrice = parseFloat(unitPriceField.value) || 0;
-        const total = quantity * unitPrice;
+        
+        // Calculate finishing option costs
+        let finishingCost = 0;
+        finishingOptions.forEach(option => {
+            if (option.checked) {
+                // Calculate the cost for this finishing option
+                const basePrice = parseFloat(option.dataset.basePrice) || 0;
+                const perPiece = parseFloat(option.dataset.perPiece) || 0;
+                const minimumPrice = parseFloat(option.dataset.minimum) || 0;
+                
+                // Calculate the standard cost (base plus per-piece)
+                let optionCost = basePrice;
+                if (perPiece > 0) {
+                    optionCost += perPiece * quantity;
+                }
+                
+                // Apply minimum price if needed
+                if (minimumPrice > 0 && optionCost < minimumPrice) {
+                    optionCost = minimumPrice;
+                }
+                
+                // Add to total finishing cost
+                finishingCost += optionCost;
+                
+                // For future: add per-sqft calculations if needed
+            }
+        });
+        
+        // Calculate total by adding unit price plus finishing costs
+        const baseTotal = quantity * unitPrice;
+        const total = baseTotal + finishingCost;
+        
         totalPriceField.value = total.toFixed(2);
+        
+        // Do not automatically update the unit price when finishing options change
+        // The unit price should remain as entered by the user, and finishing costs are added separately
+        // This maintains the distinction between the base item price and the additional finishing costs
     }
     
+    // Add event listeners for all price-affecting fields
     quantityField.addEventListener('input', updateTotalPrice);
     unitPriceField.addEventListener('input', updateTotalPrice);
+    
+    // Add event listeners to finishing options
+    finishingOptions.forEach(option => {
+        option.addEventListener('change', updateTotalPrice);
+    });
     
     // Form validation before submit
     document.getElementById('quote-item-form').addEventListener('submit', function(e) {
@@ -647,4 +737,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+<!-- Paper filter script is included but disabled -->
+<script src="{{ url_for('static', filename='js/paper_filter.js') }}"></script>
+<!-- Print price calculator -->
+<script src="{{ url_for('static', filename='js/print_calculator.js') }}"></script>
 {% endblock %}

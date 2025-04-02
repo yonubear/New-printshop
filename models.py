@@ -51,6 +51,16 @@ class Order(db.Model):
     status = db.Column(db.String(20), default='new')  # new, in-progress, completed, cancelled
     due_date = db.Column(db.DateTime)
     total_price = db.Column(db.Float, default=0.0)
+    
+    # Payment tracking
+    payment_status = db.Column(db.String(20), default='unpaid')  # unpaid, partial, paid
+    amount_paid = db.Column(db.Float, default=0.0)
+    payment_date = db.Column(db.DateTime, nullable=True)
+    payment_method = db.Column(db.String(50), nullable=True)  # cash, check, credit_card, etc.
+    payment_reference = db.Column(db.String(100), nullable=True)  # check number, transaction ID, etc.
+    invoice_number = db.Column(db.String(50), nullable=True)
+    payment_notes = db.Column(db.Text, nullable=True)
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -58,6 +68,23 @@ class Order(db.Model):
     items = db.relationship('OrderItem', backref='order', lazy=True)
     files = db.relationship('OrderFile', backref='order', lazy=True)
     activities = db.relationship('OrderActivity', backref='order', lazy=True)
+    
+    @property
+    def balance_due(self):
+        """Calculate the remaining balance due"""
+        return max(0, self.total_price - self.amount_paid)
+    
+    @property
+    def is_paid(self):
+        """Check if the order is fully paid"""
+        return self.balance_due <= 0
+    
+    @property
+    def payment_progress(self):
+        """Calculate payment progress as a percentage"""
+        if self.total_price <= 0:
+            return 100
+        return min(100, int((self.amount_paid / self.total_price) * 100))
     
     def __repr__(self):
         return f'<Order {self.order_number}>'
@@ -193,10 +220,21 @@ class QuoteItem(db.Model):
     description = db.Column(db.Text)
     sku = db.Column(db.String(50))
     
+    # Product type
+    product_type = db.Column(db.String(50), default='print_job')  # 'print_job', 'booklet', etc.
+    
+    # Booklet-specific fields
+    page_count = db.Column(db.Integer)  # For booklets - total number of pages
+    cover_paper_type = db.Column(db.String(100))  # For booklets - cover paper type
+    binding_type = db.Column(db.String(50))  # 'saddle_stitch', 'perfect_bound', etc.
+    cover_printing = db.Column(db.String(20))  # '4/4', '4/0', etc.
+    self_cover = db.Column(db.Boolean, default=False)  # Whether to use same paper for cover
+    
     # Print specifications
     size = db.Column(db.String(50))  # e.g., "8.5x11", "11x17", "Custom"
     custom_width = db.Column(db.Float)  # For custom sizes, in inches
     custom_height = db.Column(db.Float)  # For custom sizes, in inches
+    finish_size = db.Column(db.String(50))  # Finished size after cutting, e.g., "8.5x11", "5.5x8.5"
     color_type = db.Column(db.String(20))  # "Full Color", "Black & White", "Spot Color"
     sides = db.Column(db.String(20))  # "Single-sided", "Double-sided"
     paper_type = db.Column(db.String(100))  # Paper description
@@ -244,3 +282,19 @@ class PaperOption(db.Model):
     
     def __repr__(self):
         return f'<PaperOption {self.name} {self.weight}>'
+
+
+class PrintPricing(db.Model):
+    """Pricing configuration for printing (per side)"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    paper_size = db.Column(db.String(50))  # "Letter", "Legal", "Tabloid", etc.
+    color_type = db.Column(db.String(50))  # "Full Color", "Black & White", "Spot Color"
+    price_per_side = db.Column(db.Float, default=0.0)  # Retail price per side
+    cost_per_side = db.Column(db.Float, default=0.0)   # Cost price per side (what we pay)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<PrintPricing {self.name}: {self.paper_size} {self.color_type}>'

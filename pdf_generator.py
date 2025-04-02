@@ -1,12 +1,44 @@
 import os
 import tempfile
+import io
 from datetime import datetime
-from reportlab.lib.pagesizes import letter
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.lib.pagesizes import inch
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image, PageBreak
 from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
+import qrcode
+from PIL import Image as PILImage
+from models import SavedPrice
+
+def generate_qr_code(data):
+    """Generate a QR code image for the given data and return as a ReportLab Image"""
+    if not data or data == 'N/A':
+        return None
+    
+    # Create QR code instance
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    
+    # Add data to the QR code
+    qr.add_data(data)
+    qr.make(fit=True)
+    
+    # Create PIL image
+    qr_img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Convert PIL image to reportlab Image
+    img_bytes = io.BytesIO()
+    qr_img.save(img_bytes, format='PNG')
+    img_bytes.seek(0)
+    
+    return Image(img_bytes, width=0.8*inch, height=0.8*inch)
 
 def generate_order_form(order):
     """Generate a PDF order form for the given order"""
@@ -142,20 +174,23 @@ def generate_order_form(order):
     return temp_file.name
 
 def generate_pull_sheet(order):
-    """Generate a PDF material pull sheet for the given order"""
+    """Generate a PDF material pull sheet for the given order on a 4"x6" page size with QR codes"""
     
     # Create a temporary file for the PDF
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     temp_file.close()
     
-    # Create the PDF document
+    # Define a custom page size (4" x 6")
+    four_by_six = (4*inch, 6*inch)
+    
+    # Create the PDF document with 4x6 page size
     doc = SimpleDocTemplate(
         temp_file.name,
-        pagesize=letter,
-        rightMargin=72,
-        leftMargin=72,
-        topMargin=72,
-        bottomMargin=18
+        pagesize=four_by_six,
+        rightMargin=0.2*inch,
+        leftMargin=0.2*inch,
+        topMargin=0.2*inch,
+        bottomMargin=0.2*inch
     )
     
     # Get styles
@@ -164,6 +199,26 @@ def generate_pull_sheet(order):
         name='Center',
         parent=styles['Heading1'],
         alignment=1,
+        fontSize=14,
+    ))
+    
+    # Update styles to fit smaller page size
+    styles.add(ParagraphStyle(
+        name='SmallHeading',
+        parent=styles['Heading2'],
+        fontSize=12,
+    ))
+    
+    styles.add(ParagraphStyle(
+        name='SmallNormal',
+        parent=styles['Normal'],
+        fontSize=7,
+    ))
+    
+    styles.add(ParagraphStyle(
+        name='SmallHeading3',
+        parent=styles['Heading3'],
+        fontSize=10,
     ))
     
     # Create the content
@@ -171,89 +226,142 @@ def generate_pull_sheet(order):
     
     # Add title
     content.append(Paragraph("MATERIAL PULL SHEET", styles['Center']))
-    content.append(Spacer(1, 0.25 * inch))
+    content.append(Spacer(1, 0.1 * inch))
     
     # Add order information
-    content.append(Paragraph(f"Order #: {order.order_number}", styles['Heading2']))
-    content.append(Paragraph(f"Date: {datetime.now().strftime('%Y-%m-%d')}", styles['Normal']))
-    content.append(Paragraph(f"Due Date: {order.due_date.strftime('%Y-%m-%d') if order.due_date else 'N/A'}", styles['Normal']))
-    content.append(Spacer(1, 0.25 * inch))
+    content.append(Paragraph(f"Order #: {order.order_number}", styles['SmallHeading']))
+    content.append(Paragraph(f"Date: {datetime.now().strftime('%Y-%m-%d')}", styles['SmallNormal']))
+    content.append(Paragraph(f"Due: {order.due_date.strftime('%Y-%m-%d') if order.due_date else 'N/A'}", styles['SmallNormal']))
     
     # Add customer and order information
-    content.append(Paragraph(f"Customer: {order.customer.name}", styles['Heading3']))
-    content.append(Paragraph(f"Order Title: {order.title}", styles['Normal']))
-    content.append(Spacer(1, 0.25 * inch))
+    content.append(Paragraph(f"Customer: {order.customer.name}", styles['SmallHeading3']))
+    content.append(Paragraph(f"Order: {order.title}", styles['SmallNormal']))
+    content.append(Spacer(1, 0.1 * inch))
     
-    # Add materials section
-    content.append(Paragraph("Required Materials", styles['Heading3']))
-    
+    # Process materials
     all_materials = []
     for item in order.items:
         for material in item.materials:
             all_materials.append((item.name, material))
     
     if all_materials:
-        # Create table for materials
-        material_data = [['Order Item', 'SKU', 'Material', 'Quantity', 'Unit', 'Notes', 'Pulled']]
+        # Create multiple material cards per page (3 cards per page)
+        items_per_page = 3
         
-        # Add materials to table
-        for item_name, material in all_materials:
-            # Find the SKU for this item
-            item_sku = next((item.sku for item in order.items if item.name == item_name), 'N/A')
+        # Process materials in batches
+        for i in range(0, len(all_materials), items_per_page):
+            # Get current batch of materials (up to items_per_page)
+            batch = all_materials[i:i+items_per_page]
             
-            material_data.append([
-                item_name,
-                item_sku or 'N/A',  # Show SKU or N/A if not available
-                material.material_name,
-                str(material.quantity),
-                material.unit,
-                material.notes or '',
-                '□'  # Checkbox for marking pulled items
-            ])
+            # Add page break for new pages after the first page
+            if i > 0:
+                content.append(PageBreak())
+                # Add the header again for each new page
+                content.append(Paragraph("MATERIAL PULL SHEET", styles['Center']))
+                content.append(Spacer(1, 0.1 * inch))
+                content.append(Paragraph(f"Order #: {order.order_number}", styles['SmallHeading']))
+                content.append(Paragraph(f"Date: {datetime.now().strftime('%Y-%m-%d')}", styles['SmallNormal']))
+                content.append(Paragraph(f"Due: {order.due_date.strftime('%Y-%m-%d') if order.due_date else 'N/A'}", styles['SmallNormal']))
+                content.append(Paragraph(f"Customer: {order.customer.name}", styles['SmallHeading3']))
+                content.append(Paragraph(f"Order: {order.title}", styles['SmallNormal']))
+                content.append(Spacer(1, 0.1 * inch))
             
-        # Create table
-        material_table = Table(material_data, colWidths=[1.1*inch, 0.8*inch, 1.1*inch, 0.6*inch, 0.5*inch, 1.4*inch, 0.5*inch])
-        
-        # Apply table style
-        material_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 12),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-            ('ALIGN', (1, 1), (1, -1), 'CENTER'),  # Center SKU column
-            ('ALIGN', (3, 1), (4, -1), 'CENTER'),  # Center quantity and unit columns
-            ('ALIGN', (-1, 1), (-1, -1), 'CENTER'),  # Center pulled checkbox
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ]))
-        
-        content.append(material_table)
+            # Process each material in the batch
+            for idx, (item_name, material) in enumerate(batch):
+                # Add smaller spacer between items on the same page
+                if idx > 0:
+                    content.append(Spacer(1, 0.1 * inch))
+                
+                # Create a container for material info
+                material_data = []
+                
+                # Find the SKU - from the material's saved_price if available, otherwise from the item
+                item_sku = next((item.sku for item in order.items if item.name == item_name), 'N/A')
+                material_sku = 'N/A'
+                
+                # Safely access the saved_price relationship
+                if hasattr(material, 'saved_price_id') and material.saved_price_id:
+                    saved_price = SavedPrice.query.get(material.saved_price_id)
+                    if saved_price and saved_price.sku:
+                        material_sku = saved_price.sku
+                
+                # If no saved_price SKU was found, use the item SKU as a fallback
+                if material_sku == 'N/A':
+                    material_sku = item_sku
+                
+                # Generate QR code for the SKU if available
+                qr_code = None
+                if material_sku and material_sku != 'N/A':
+                    qr_code = generate_qr_code(material_sku)
+                
+                # Use smaller size for QR code for 3-up layout
+                qr_code_size = 0.6*inch
+                if qr_code:
+                    qr_code._width = qr_code_size
+                    qr_code._height = qr_code_size
+                
+                # Create more compact header row with QR code and material info
+                header_data = [[
+                    Paragraph(f"<b>Material:</b> {material.material_name}", styles['SmallHeading3']),
+                    qr_code if qr_code else Paragraph("", styles['SmallNormal'])
+                ]]
+                
+                header_table = Table(header_data, colWidths=[2.4*inch, 1.0*inch])
+                header_table.setStyle(TableStyle([
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+                ]))
+                
+                material_data.append([header_table])
+                
+                # Create more compact details format
+                details_data = [
+                    [Paragraph(f"<b>Item:</b> {item_name}", styles['SmallNormal'])],
+                    [Paragraph(f"<b>SKU:</b> {material_sku}", styles['SmallNormal'])],
+                    [Paragraph(f"<b>Qty:</b> {material.quantity} {material.unit}", styles['SmallNormal'])],
+                ]
+                
+                if material.notes:
+                    # Truncate notes if too long
+                    notes = material.notes
+                    if len(notes) > 50:
+                        notes = notes[:47] + "..."
+                    details_data.append([Paragraph(f"<b>Notes:</b> {notes}", styles['SmallNormal'])])
+                
+                details_table = Table(details_data)
+                details_table.setStyle(TableStyle([
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                ]))
+                
+                material_data.append([details_table])
+                
+                # Add compact checkbox for marking as pulled
+                checkbox_data = [[
+                    Paragraph("Pulled:", styles['SmallNormal']),
+                    "□ _________"
+                ]]
+                
+                checkbox_table = Table(checkbox_data, colWidths=[0.8*inch, 2.6*inch])
+                checkbox_table.setStyle(TableStyle([
+                    ('ALIGN', (1, 0), (1, 0), 'LEFT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ]))
+                
+                material_data.append([checkbox_table])
+                
+                # Create main table to hold all the components with smaller margins
+                main_table = Table(material_data, colWidths=[3.4*inch])
+                main_table.setStyle(TableStyle([
+                    ('BOX', (0, 0), (-1, -1), 1, colors.black),
+                    ('TOPPADDING', (0, 0), (-1, -1), 3),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                ]))
+                
+                content.append(main_table)
     else:
-        content.append(Paragraph("No materials specified for this order", styles['Normal']))
-    
-    content.append(Spacer(1, 0.25 * inch))
-    
-    # Add notes and sign-off
-    content.append(Paragraph("Notes:", styles['Heading4']))
-    content.append(Spacer(1, 0.5 * inch))
-    
-    # Add signature lines
-    sig_data = [
-        ['________________________', '________________________'],
-        ['Pulled By', 'Date'],
-        ['', ''],
-        ['________________________', '________________________'],
-        ['Verified By', 'Date'],
-    ]
-    
-    sig_table = Table(sig_data, colWidths=[2.5*inch, 2.5*inch])
-    sig_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-    ]))
-    
-    content.append(sig_table)
+        content.append(Paragraph("No materials specified for this order", styles['SmallNormal']))
     
     # Build the PDF document
     doc.build(content)

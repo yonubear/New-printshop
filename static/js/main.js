@@ -18,10 +18,14 @@ document.addEventListener('DOMContentLoaded', function() {
     setupOrderStatusUpdates();
     
     // Material form handlers
+    setupMaterialPanel();
     setupMaterialForms();
     
     // Order item handlers
     setupOrderItemForms();
+    
+    // Initialize any modals that might need calculation
+    setupModalCalculations();
     
     // Setup responsive handling for tables
     setupResponsiveTables();
@@ -196,12 +200,23 @@ function setupOrderItemForms() {
     const priceInputs = document.querySelectorAll('.calc-price');
     
     const updateTotalPrice = (row) => {
-        const quantity = parseInt(row.querySelector('.calc-quantity').value) || 0;
-        const price = parseFloat(row.querySelector('.calc-price').value) || 0;
-        const totalElement = row.querySelector('.calc-total');
+        // Get the closest container that has both quantity and price inputs
+        let container = row;
         
-        if (totalElement) {
-            totalElement.textContent = `$${(quantity * price).toFixed(2)}`;
+        // If it's a modal, find the parent modal instead of row
+        if (row.classList.contains('modal-content') || row.closest('.modal-content')) {
+            container = row.classList.contains('modal-content') ? row : row.closest('.modal-content');
+        }
+        
+        const quantityInput = container.querySelector('.calc-quantity');
+        const priceInput = container.querySelector('.calc-price');
+        const totalElement = container.querySelector('.calc-total');
+        
+        if (quantityInput && priceInput && totalElement) {
+            const quantity = parseInt(quantityInput.value) || 0;
+            const price = parseFloat(priceInput.value) || 0;
+            const total = quantity * price;
+            totalElement.textContent = `$${total.toFixed(2)}`;
         }
     };
     
@@ -214,6 +229,96 @@ function setupOrderItemForms() {
     priceInputs.forEach(input => {
         input.addEventListener('input', function() {
             updateTotalPrice(this.closest('tr, .item-row'));
+        });
+    });
+}
+
+/**
+ * Setup material panel toggle buttons
+ */
+function setupMaterialPanel() {
+    const toggleButtons = document.querySelectorAll('.toggle-materials-btn');
+    
+    toggleButtons.forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.preventDefault();
+            
+            const targetId = this.getAttribute('data-target');
+            console.log("Target ID:", targetId);
+            
+            if (!targetId) {
+                console.error("No target ID found in button");
+                return;
+            }
+            
+            // First try finding the panel by ID
+            let panel = document.getElementById(targetId);
+            
+            // If not found by ID, try finding it by a more complex selector
+            if (!panel) {
+                console.log("Panel not found by ID, trying alternative selector");
+                // Try to find it by a more specific selector - maybe the ID has a different format
+                panel = document.querySelector(`tr[id='${targetId}'], tr[id*='${targetId}']`);
+            }
+            
+            if (!panel) {
+                console.error("Target panel not found:", targetId);
+                // Try to log all table rows to help debug
+                const allRows = document.querySelectorAll('tr');
+                console.log("All table rows:", Array.from(allRows).map(row => row.id));
+                return;
+            }
+            
+            panel.classList.toggle('d-none');
+            
+            // Update button text
+            if (panel.classList.contains('d-none')) {
+                this.innerHTML = '<i class="bi bi-plus-circle me-1"></i> Show Materials';
+            } else {
+                this.innerHTML = '<i class="bi bi-dash-circle me-1"></i> Hide Materials';
+            }
+        });
+    });
+}
+
+/**
+ * Setup calculation updates for modals
+ */
+function setupModalCalculations() {
+    // Initialize price calculations when edit modals are shown
+    const editModals = document.querySelectorAll('.modal');
+    
+    editModals.forEach(modal => {
+        modal.addEventListener('shown.bs.modal', function() {
+            const quantityInputs = this.querySelectorAll('.calc-quantity');
+            const priceInputs = this.querySelectorAll('.calc-price');
+            
+            // Update totals when the modal is shown
+            const updateAllTotals = () => {
+                const container = this;
+                const quantityInput = container.querySelector('.calc-quantity');
+                const priceInput = container.querySelector('.calc-price');
+                const totalElement = container.querySelector('.calc-total');
+                
+                if (quantityInput && priceInput && totalElement) {
+                    const quantity = parseInt(quantityInput.value) || 0;
+                    const price = parseFloat(priceInput.value) || 0;
+                    const total = quantity * price;
+                    totalElement.textContent = `$${total.toFixed(2)}`;
+                }
+            };
+            
+            // Initialize totals
+            updateAllTotals();
+            
+            // Add event listeners to quantity and price inputs
+            quantityInputs.forEach(input => {
+                input.addEventListener('input', updateAllTotals);
+            });
+            
+            priceInputs.forEach(input => {
+                input.addEventListener('input', updateAllTotals);
+            });
         });
     });
 }

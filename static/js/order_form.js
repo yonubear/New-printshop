@@ -221,22 +221,35 @@ function initItemMaterials() {
     const addMaterialForms = document.querySelectorAll('.add-material-form');
     const materialPanels = document.querySelectorAll('.materials-panel');
     
-    // Toggle material panels
-    const toggleButtons = document.querySelectorAll('.toggle-materials-btn');
-    toggleButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const targetId = this.dataset.target;
-            const panel = document.getElementById(targetId);
-            
-            if (panel) {
-                panel.classList.toggle('d-none');
-                
-                // Update button text
-                if (panel.classList.contains('d-none')) {
-                    this.innerHTML = '<i class="bi bi-plus-circle me-1"></i> Show Materials';
-                } else {
-                    this.innerHTML = '<i class="bi bi-dash-circle me-1"></i> Hide Materials';
-                }
+    // Note: Material panel toggle buttons are now handled in main.js
+    
+    // Handle material type selection
+    const materialSelectors = document.querySelectorAll('.material-selector');
+    materialSelectors.forEach(selector => {
+        // Initial state - hide or show custom fields
+        const form = selector.closest('form');
+        const customFields = form.querySelectorAll('.custom-material-field');
+        
+        // Initial setup - if custom, show fields, otherwise hide them
+        if (selector.value === 'custom') {
+            customFields.forEach(field => field.style.display = 'block');
+        } else {
+            customFields.forEach(field => field.style.display = 'none');
+        }
+        
+        // Add change event
+        selector.addEventListener('change', function() {
+            const customFields = this.closest('form').querySelectorAll('.custom-material-field');
+            if (this.value === 'custom') {
+                customFields.forEach(field => field.style.display = 'block');
+                // Make material_name required
+                const nameInput = this.closest('form').querySelector('input[name="material_name"]');
+                if (nameInput) nameInput.required = true;
+            } else {
+                customFields.forEach(field => field.style.display = 'none');
+                // Remove required from material_name
+                const nameInput = this.closest('form').querySelector('input[name="material_name"]');
+                if (nameInput) nameInput.required = false;
             }
         });
     });
@@ -244,19 +257,29 @@ function initItemMaterials() {
     // Material form validation
     addMaterialForms.forEach(form => {
         form.addEventListener('submit', function(e) {
+            const materialSelector = this.querySelector('.material-selector');
             const nameInput = this.querySelector('input[name="material_name"]');
             const quantityInput = this.querySelector('input[name="quantity"]');
             
             let isValid = true;
             
-            if (!nameInput.value.trim()) {
-                highlightInvalidField(nameInput, 'Please enter a material name');
-                isValid = false;
+            // First validate that we have a material selection or custom input
+            if (materialSelector && materialSelector.value === 'custom') {
+                if (nameInput && !nameInput.value.trim()) {
+                    highlightInvalidField(nameInput, 'Please enter a material name');
+                    isValid = false;
+                }
             }
             
-            const quantity = parseFloat(quantityInput.value);
-            if (isNaN(quantity) || quantity <= 0) {
-                highlightInvalidField(quantityInput, 'Please enter a valid quantity');
+            // Validate quantity (this is always required)
+            if (quantityInput) {
+                const quantity = parseFloat(quantityInput.value);
+                if (isNaN(quantity) || quantity <= 0) {
+                    highlightInvalidField(quantityInput, 'Please enter a valid quantity');
+                    isValid = false;
+                }
+            } else {
+                console.error("Quantity input is missing from the form");
                 isValid = false;
             }
             
@@ -284,9 +307,20 @@ function initItemMaterials() {
                     <div class="card-body">
                         <h6 class="mb-3">Add Custom Material</h6>
                         <div class="row mb-2">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label class="form-label">Material Name</label>
                                 <input type="text" class="form-control" name="material_name[]" required>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Category</label>
+                                <select class="form-select" name="material_categories[]">
+                                    <option value="paper">Paper</option>
+                                    <option value="ink">Ink</option>
+                                    <option value="substrate">Substrate</option>
+                                    <option value="laminate">Laminate</option>
+                                    <option value="binding">Binding</option>
+                                    <option value="other" selected>Other</option>
+                                </select>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Quantity</label>

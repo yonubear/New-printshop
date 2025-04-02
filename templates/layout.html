@@ -29,7 +29,6 @@
             </button>
             
             <div class="collapse navbar-collapse" id="navbarNav">
-                {% if current_user.is_authenticated %}
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
@@ -56,35 +55,33 @@
                             <i class="bi bi-file-earmark-text me-1"></i> Quotes
                         </a>
                     </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if request.endpoint.startswith('reports_') %}active{% endif %}" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-graph-up me-1"></i> Reports
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
+                            <li><a class="dropdown-item" href="{{ url_for('reports_index') }}"><i class="bi bi-graph-up me-1"></i> All Reports</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('reports_accounts_receivable') }}"><i class="bi bi-cash me-1"></i> Accounts Receivable</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('reports_profitability') }}"><i class="bi bi-graph-up-arrow me-1"></i> Profitability</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('reports_customers') }}"><i class="bi bi-people me-1"></i> Customer Reports</a></li>
+                        </ul>
+                    </li>
                 </ul>
                 
                 <ul class="navbar-nav">
-                    <!-- Admin dropdown menu -->
-                    {% if current_user.role == 'admin' %}
+                    <!-- Admin menu -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-gear-fill me-1"></i> Admin
+                            <i class="bi bi-gear-fill me-1"></i> Settings
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
                             <li><a class="dropdown-item" href="{{ url_for('paper_options_index') }}"><i class="bi bi-file me-1"></i> Paper Options</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('finishing_options_index') }}"><i class="bi bi-tools me-1"></i> Finishing Options</a></li>
-                        </ul>
-                    </li>
-                    {% endif %}
-                    
-                    <!-- User dropdown menu -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-person-circle me-1"></i> {{ current_user.username }}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-1"></i> Settings</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right me-1"></i> Logout</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('print_pricing_index') }}"><i class="bi bi-printer me-1"></i> Print Pricing</a></li>
                         </ul>
                     </li>
                 </ul>
-                {% endif %}
             </div>
         </div>
     </nav>

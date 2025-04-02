@@ -1,5 +1,5 @@
 """
-Email service for sending proofs to customers
+Email service for sending proofs and notifications to customers
 """
 import os
 import uuid
@@ -27,6 +27,48 @@ def init_email(app):
 def generate_approval_token():
     """Generate a unique approval token"""
     return str(uuid.uuid4())
+
+def send_email(recipient_email, subject, message_body, sender_name=None, html_content=None):
+    """
+    Send a general-purpose email
+    
+    Args:
+        recipient_email: Email address of the recipient
+        subject: Email subject
+        message_body: Plain text email body
+        sender_name: Name to display as sender (optional)
+        html_content: HTML version of the email (optional)
+    
+    Returns:
+        bool: Whether the email was sent successfully
+    """
+    try:
+        # Set up default sender
+        default_sender = os.environ.get('MAIL_DEFAULT_SENDER', 'printshop@example.com')
+        if sender_name:
+            sender = f"{sender_name} <{default_sender}>"
+        else:
+            sender = default_sender
+            
+        # Create message
+        msg = Message(
+            subject=subject,
+            recipients=[recipient_email],
+            body=message_body,
+            sender=sender
+        )
+        
+        # Add HTML content if provided
+        if html_content:
+            msg.html = html_content
+            
+        # Send the email
+        mail.send(msg)
+        current_app.logger.info(f"Email sent to {recipient_email}: {subject}")
+        return True
+    except Exception as e:
+        current_app.logger.error(f"Failed to send email: {str(e)}")
+        return False
 
 def send_proof_approval_email(order_file, customer, order, base_url=None):
     """
