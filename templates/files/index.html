@@ -1,0 +1,213 @@
+{% extends "layout.html" %}
+
+{% block title %}Order Files - Print Order Management System{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Files for Order: {{ order.order_number }}</h1>
+    <div>
+        <a href="{{ url_for('order_files_upload', order_id=order.id) }}" class="btn btn-primary me-2">
+            <i class="bi bi-upload me-1"></i> Upload File
+        </a>
+        <a href="{{ url_for('orders_view', id=order.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back to Order
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h5 class="mb-md-0">Order: {{ order.title }}</h5>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <span class="badge badge-{{ order.status }}">{{ order.status }}</span>
+                <span class="text-muted ms-2">Customer: {{ order.customer.name }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- File Grid View -->
+<div class="row mb-4">
+    {% if order.files %}
+        {% for file in order.files %}
+        <div class="col-md-4 col-sm-6 mb-4">
+            <div class="card file-card h-100">
+                <div class="card-body d-flex flex-column">
+                    <div class="text-center mb-3">
+                        {% if file.file_type == 'proof' %}
+                            <i class="bi bi-file-earmark-image file-icon text-success"></i>
+                        {% elif file.file_type == 'artwork' %}
+                            <i class="bi bi-file-earmark-richtext file-icon text-primary"></i>
+                        {% elif file.file_type == 'reference' %}
+                            <i class="bi bi-file-earmark-text file-icon text-info"></i>
+                        {% elif file.file_type == 'contract' %}
+                            <i class="bi bi-file-earmark-pdf file-icon text-danger"></i>
+                        {% else %}
+                            <i class="bi bi-file-earmark file-icon text-secondary"></i>
+                        {% endif %}
+                    </div>
+                    
+                    <h6 class="file-name text-center">{{ file.original_filename }}</h6>
+                    
+                    <div class="file-meta mb-3">
+                        <div><i class="bi bi-tag me-1"></i>{{ file.file_type }}</div>
+                        <div><i class="bi bi-person me-1"></i>{{ file.uploaded_by }}</div>
+                        <div><i class="bi bi-calendar me-1"></i>{{ file.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                    </div>
+                    
+                    <div class="mt-auto">
+                        <div class="btn-group w-100">
+                            <a href="{{ url_for('files_preview', file_id=file.id) }}" class="btn btn-outline-info btn-preview-file" data-file-id="{{ file.id }}" data-file-name="{{ file.original_filename }}" data-file-type="{{ file.file_type }}">
+                                <i class="bi bi-eye me-1"></i> Preview
+                            </a>
+                            <a href="{{ url_for('files_download', file_id=file.id) }}" class="btn btn-outline-primary">
+                                <i class="bi bi-download me-1"></i> Download
+                            </a>
+                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteFileModal{{ file.id }}">
+                                <i class="bi bi-trash me-1"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Delete File Modal -->
+            <div class="modal fade" id="deleteFileModal{{ file.id }}" tabindex="-1" aria-labelledby="deleteFileModalLabel{{ file.id }}" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="deleteFileModalLabel{{ file.id }}">Confirm Delete</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Are you sure you want to delete the file: <strong>{{ file.original_filename }}</strong>?</p>
+                            <p class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>This action cannot be undone.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <form action="{{ url_for('files_delete', file_id=file.id) }}" method="post">
+                                <button type="submit" class="btn btn-danger">Delete File</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle me-2"></i> No files have been uploaded for this order.
+                <div class="mt-3">
+                    <a href="{{ url_for('order_files_upload', order_id=order.id) }}" class="btn btn-primary">
+                        <i class="bi bi-upload me-1"></i> Upload File
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- File Type Filters -->
+{% if order.files %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">File Types</h5>
+    </div>
+    
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+                <div class="d-grid">
+                    <button class="btn btn-outline-secondary file-filter" data-filter="all">
+                        <i class="bi bi-files me-1"></i> All Files <span class="badge bg-secondary ms-1">{{ order.files|length }}</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+                <div class="d-grid">
+                    <button class="btn btn-outline-success file-filter" data-filter="proof">
+                        <i class="bi bi-file-earmark-image me-1"></i> Proofs <span class="badge bg-success ms-1">{{ order.files|selectattr('file_type', 'equalto', 'proof')|list|length }}</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="col-md-3 col-sm-6 mb-3 mb-sm-0">
+                <div class="d-grid">
+                    <button class="btn btn-outline-primary file-filter" data-filter="artwork">
+                        <i class="bi bi-file-earmark-richtext me-1"></i> Artwork <span class="badge bg-primary ms-1">{{ order.files|selectattr('file_type', 'equalto', 'artwork')|list|length }}</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="col-md-3 col-sm-6">
+                <div class="d-grid">
+                    <button class="btn btn-outline-info file-filter" data-filter="reference">
+                        <i class="bi bi-file-earmark-text me-1"></i> References <span class="badge bg-info ms-1">{{ order.files|selectattr('file_type', 'equalto', 'reference')|list|length }}</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- File Preview Modal -->
+<div class="modal fade" id="filePreviewModal" tabindex="-1" aria-labelledby="filePreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="filePreviewModalLabel">File Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="preview-container">
+                    <!-- Preview content will be loaded dynamically -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/file_preview.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // File type filtering
+        const fileFilters = document.querySelectorAll('.file-filter');
+        const fileCards = document.querySelectorAll('.file-card');
+        
+        fileFilters.forEach(filter => {
+            filter.addEventListener('click', function() {
+                const filterType = this.dataset.filter;
+                
+                // Update active button
+                fileFilters.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Filter file cards
+                fileCards.forEach(card => {
+                    const fileType = card.querySelector('.file-meta').textContent.includes(filterType);
+                    const parentCol = card.closest('.col-md-4');
+                    
+                    if (filterType === 'all' || fileType) {
+                        parentCol.style.display = '';
+                    } else {
+                        parentCol.style.display = 'none';
+                    }
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}

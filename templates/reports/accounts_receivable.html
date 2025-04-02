@@ -1,0 +1,343 @@
+{% extends 'layout.html' %}
+
+{% block title %}Accounts Receivable Report{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    .table-aging th, .table-aging td {
+        text-align: right;
+    }
+    .table-aging th:first-child, .table-aging td:first-child {
+        text-align: left;
+    }
+    .aging-bar {
+        height: 20px;
+        border-radius: 4px;
+        margin-bottom: 5px;
+    }
+    .current-bar {
+        background-color: #28a745;
+    }
+    .days-1-30-bar {
+        background-color: #ffc107;
+    }
+    .days-31-60-bar {
+        background-color: #fd7e14;
+    }
+    .days-61-90-bar {
+        background-color: #dc3545;
+    }
+    .days-over-90-bar {
+        background-color: #6c757d;
+    }
+    .customer-row {
+        cursor: pointer;
+    }
+    .customer-row:hover {
+        background-color: #f8f9fa;
+    }
+    .customer-details {
+        display: none;
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 0.25em 0.4em;
+        font-size: 75%;
+        font-weight: 700;
+        line-height: 1;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: baseline;
+        border-radius: 0.25rem;
+    }
+    .summary-card {
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+        background-color: white;
+    }
+    .summary-title {
+        font-size: 1.1rem;
+        font-weight: 500;
+        margin-bottom: 15px;
+    }
+    .summary-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+    }
+    .summary-subtitle {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+    .progress-bar-container {
+        height: 15px;
+        background-color: #e9ecef;
+        border-radius: 10px;
+        margin-top: 10px;
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    .progress-segment {
+        height: 100%;
+        float: left;
+    }
+    .reminder-form {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center my-4">
+        <h1>Accounts Receivable</h1>
+        <a href="{{ url_for('reports_index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Reports
+        </a>
+    </div>
+
+    <!-- Summary Cards Row -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="summary-card">
+                <div class="summary-title">Total Receivable</div>
+                <div class="summary-value text-primary">${{ '%0.2f'|format(total_receivable) }}</div>
+                <div class="summary-subtitle">Across {{ customers_with_balance }} customers</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="summary-card">
+                <div class="summary-title">Overdue Receivable</div>
+                <div class="summary-value text-danger">${{ '%0.2f'|format(overdue_receivable) }}</div>
+                <div class="summary-subtitle">{{ '%0.1f'|format((overdue_receivable / total_receivable) * 100 if total_receivable else 0) }}% of total balance</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="summary-card">
+                <div class="summary-title">Current (Not Due)</div>
+                <div class="summary-value text-success">${{ '%0.2f'|format(current_receivable) }}</div>
+                <div class="summary-subtitle">{{ '%0.1f'|format(current_percentage) }}% of total balance</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="summary-card">
+                <div class="summary-title">Over 90 Days</div>
+                <div class="summary-value text-secondary">${{ '%0.2f'|format(days_over_90) }}</div>
+                <div class="summary-subtitle">{{ '%0.1f'|format(days_over_90_percentage) }}% of total balance</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aging Chart -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Accounts Receivable Aging</h5>
+        </div>
+        <div class="card-body">
+            <div class="progress-bar-container">
+                <div class="progress-segment current-bar" style="width: {{ current_percentage }}%;" title="Current: ${{ '%0.2f'|format(current_receivable) }}"></div>
+                <div class="progress-segment days-1-30-bar" style="width: {{ days_1_30_percentage }}%;" title="1-30 Days: ${{ '%0.2f'|format(days_1_30) }}"></div>
+                <div class="progress-segment days-31-60-bar" style="width: {{ days_31_60_percentage }}%;" title="31-60 Days: ${{ '%0.2f'|format(days_31_60) }}"></div>
+                <div class="progress-segment days-61-90-bar" style="width: {{ days_61_90_percentage }}%;" title="61-90 Days: ${{ '%0.2f'|format(days_61_90) }}"></div>
+                <div class="progress-segment days-over-90-bar" style="width: {{ days_over_90_percentage }}%;" title="Over 90 Days: ${{ '%0.2f'|format(days_over_90) }}"></div>
+            </div>
+
+            <div class="row text-center mb-4">
+                <div class="col">
+                    <div class="aging-bar current-bar" style="width: 50px; display: inline-block;"></div>
+                    <span>Current: ${{ '%0.2f'|format(current_receivable) }}</span>
+                </div>
+                <div class="col">
+                    <div class="aging-bar days-1-30-bar" style="width: 50px; display: inline-block;"></div>
+                    <span>1-30 Days: ${{ '%0.2f'|format(days_1_30) }}</span>
+                </div>
+                <div class="col">
+                    <div class="aging-bar days-31-60-bar" style="width: 50px; display: inline-block;"></div>
+                    <span>31-60 Days: ${{ '%0.2f'|format(days_31_60) }}</span>
+                </div>
+                <div class="col">
+                    <div class="aging-bar days-61-90-bar" style="width: 50px; display: inline-block;"></div>
+                    <span>61-90 Days: ${{ '%0.2f'|format(days_61_90) }}</span>
+                </div>
+                <div class="col">
+                    <div class="aging-bar days-over-90-bar" style="width: 50px; display: inline-block;"></div>
+                    <span>>90 Days: ${{ '%0.2f'|format(days_over_90) }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Balances Table -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Customer Balances</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-aging">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Current</th>
+                            <th>1-30 Days</th>
+                            <th>31-60 Days</th>
+                            <th>61-90 Days</th>
+                            <th>>90 Days</th>
+                            <th>Total Due</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for customer_id, data in customer_balances.items() %}
+                            {% if data.total_due > 0 %}
+                                <tr class="customer-row" data-customer-id="{{ customer_id }}">
+                                    <td>{{ data.name }}</td>
+                                    <td>${{ '%0.2f'|format(data.current) }}</td>
+                                    <td>${{ '%0.2f'|format(data.days_1_30) }}</td>
+                                    <td>${{ '%0.2f'|format(data.days_31_60) }}</td>
+                                    <td>${{ '%0.2f'|format(data.days_61_90) }}</td>
+                                    <td>${{ '%0.2f'|format(data.days_over_90) }}</td>
+                                    <td class="font-weight-bold">${{ '%0.2f'|format(data.total_due) }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary toggle-reminder-form" data-customer-id="{{ customer_id }}" data-customer-name="{{ data.name }}" data-customer-email="{{ data.email }}">
+                                            <i class="bi bi-envelope"></i> Payment Reminder
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="8" class="p-0">
+                                        <div id="customer-details-{{ customer_id }}" class="customer-details">
+                                            <h6>{{ data.name }} - Outstanding Orders</h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Order #</th>
+                                                            <th>Title</th>
+                                                            <th>Days Outstanding</th>
+                                                            <th>Due Date</th>
+                                                            <th>Total Price</th>
+                                                            <th>Amount Paid</th>
+                                                            <th>Balance</th>
+                                                            <th>Status</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for order in outstanding_orders %}
+                                                            {% if order.customer_id == customer_id|int %}
+                                                                <tr>
+                                                                    <td>
+                                                                        <a href="{{ url_for('orders_view', id=order.id) }}">{{ order.order_number }}</a>
+                                                                    </td>
+                                                                    <td>{{ order.title }}</td>
+                                                                    <td>
+                                                                        {% if order.days_outstanding <= 0 %}
+                                                                            <span class="status-badge bg-success text-white">Not Due</span>
+                                                                        {% elif order.days_outstanding <= 30 %}
+                                                                            <span class="status-badge bg-warning text-dark">{{ order.days_outstanding }} days</span>
+                                                                        {% elif order.days_outstanding <= 60 %}
+                                                                            <span class="status-badge bg-orange text-white">{{ order.days_outstanding }} days</span>
+                                                                        {% elif order.days_outstanding <= 90 %}
+                                                                            <span class="status-badge bg-danger text-white">{{ order.days_outstanding }} days</span>
+                                                                        {% else %}
+                                                                            <span class="status-badge bg-secondary text-white">{{ order.days_outstanding }} days</span>
+                                                                        {% endif %}
+                                                                    </td>
+                                                                    <td>{{ order.due_date.strftime('%Y-%m-%d') if order.due_date else 'Not Set' }}</td>
+                                                                    <td>${{ '%0.2f'|format(order.total_price) }}</td>
+                                                                    <td>${{ '%0.2f'|format(order.amount_paid) }}</td>
+                                                                    <td>${{ '%0.2f'|format(order.balance_due) }}</td>
+                                                                    <td>
+                                                                        {% if order.payment_status == 'unpaid' %}
+                                                                            <span class="status-badge bg-danger text-white">Unpaid</span>
+                                                                        {% elif order.payment_status == 'partial' %}
+                                                                            <span class="status-badge bg-warning text-dark">Partial</span>
+                                                                        {% else %}
+                                                                            <span class="status-badge bg-success text-white">Paid</span>
+                                                                        {% endif %}
+                                                                    </td>
+                                                                </tr>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Payment Reminder Form -->
+                                        <div id="reminder-form-{{ customer_id }}" class="reminder-form" style="display: none;">
+                                            <form action="{{ url_for('send_payment_reminder') }}" method="post">
+                                                <input type="hidden" name="customer_id" value="{{ customer_id }}">
+                                                <div class="form-group mb-3">
+                                                    <label for="subject-{{ customer_id }}">Email Subject</label>
+                                                    <input type="text" class="form-control" id="subject-{{ customer_id }}" name="subject" value="Payment Reminder: Outstanding Balance" required>
+                                                </div>
+                                                <div class="form-group mb-3">
+                                                    <label for="message-{{ customer_id }}">Message</label>
+                                                    <textarea class="form-control" id="message-{{ customer_id }}" name="message" rows="6" required>Dear {{ data.name }},
+
+This is a friendly reminder that you have an outstanding balance of ${{ '%0.2f'|format(data.total_due) }} for print orders with our company.
+
+Please contact us at your earliest convenience to arrange payment.
+
+Thank you for your business.
+
+Best regards,
+Print Shop Team</textarea>
+                                                </div>
+                                                <button type="submit" class="btn btn-primary">Send Reminder</button>
+                                                <button type="button" class="btn btn-secondary cancel-reminder">Cancel</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            {% if customers_with_balance == 0 %}
+                <div class="alert alert-info">
+                    There are no outstanding balances at this time.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function() {
+        // Toggle customer details
+        $('.customer-row').click(function() {
+            var customerId = $(this).data('customer-id');
+            $('#customer-details-' + customerId).slideToggle();
+        });
+        
+        // Toggle reminder form
+        $('.toggle-reminder-form').click(function(e) {
+            e.stopPropagation(); // Prevent triggering the row click event
+            var customerId = $(this).data('customer-id');
+            $('#reminder-form-' + customerId).slideToggle();
+            $('#customer-details-' + customerId).slideUp();
+        });
+        
+        // Cancel reminder form
+        $('.cancel-reminder').click(function() {
+            $(this).closest('.reminder-form').slideUp();
+        });
+    });
+</script>
+{% endblock %}
