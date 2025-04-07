@@ -1,5 +1,13 @@
 # Print Shop Management System - Release Notes
 
+## Version 4.1.1 (April 2, 2025)
+
+### Bug Fixes and Improvements
+- Added missing qrcode dependency required for QR code generation on pull sheets
+- Fixed database initialization issues with improved instance directory handling
+- Enhanced error handling and user feedback during setup
+- Updated SETUP_GUIDE.md with clearer instructions for initialization
+
 ## Version 4.1 (April 2, 2025)
 
 ### New Features

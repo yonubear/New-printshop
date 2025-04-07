@@ -13,6 +13,7 @@ openpyxl==3.1.2
 pandas==2.0.3
 psycopg2-binary==2.9.7
 python-dotenv==1.0.0
+qrcode==7.4.2
 reportlab==4.0.4
 requests==2.31.0
 sendgrid==6.10.0

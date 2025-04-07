@@ -100,16 +100,9 @@ DATABASE_URL=postgresql://printshop_user:your_password@localhost/printshop
 ### 6. Initialize the Database
 
 ```bash
-# First, create the instance directory (required for SQLite)
-mkdir -p instance
-
-# Then initialize the database with the provided script
-python init_db.py
+# This will create all necessary tables
+python -c "from app import app, db; app.app_context().push(); db.create_all()"
 ```
-
-If you encounter any database initialization errors, make sure:
-1. The 'instance' directory exists and is writable
-2. The Python environment has the required permissions to create and write to the database file
 
 ### 7. Create an Admin User
 
@@ -199,33 +192,6 @@ For Gmail:
 1. Enable 2-Step Verification in your Google Account
 2. Generate an App Password for the application
 3. Use the App Password in the MAIL_PASSWORD environment variable
-
-## Importing Initial Data
-
-The system includes a comprehensive Excel template for importing data such as paper options, finishing options, print pricing, and saved prices.
-
-### Using the Included Comprehensive Template
-
-1. Locate the `comprehensive_import_template.xlsx` file in the root directory.
-2. Open the file in Excel or a compatible spreadsheet application.
-3. Fill in your data following the sample format in each sheet.
-4. Save the file.
-5. In the application, go to the appropriate import page:
-   - For paper options: "Settings > Import Paper Options"
-   - For finishing options: "Settings > Import Finishing Options"
-   - For print pricing: "Settings > Import Print Pricing"
-   - For saved prices: "Settings > Import Saved Prices"
-6. Upload the Excel file with your data.
-
-### Generating a New Template
-
-You can also generate a fresh template with the latest schema:
-
-```bash
-python generate_comprehensive_template.py
-```
-
-This will create a new `comprehensive_import_template.xlsx` file with multiple sheets containing sample data and detailed instructions for each data type.
 
 ## Troubleshooting
 
