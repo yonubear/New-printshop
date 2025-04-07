@@ -1,0 +1,272 @@
+{% extends "layout.html" %}
+
+{% block title %}Add Item to Quote{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-3">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('quotes_index') }}">Quotes</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('quotes_edit', id=quote.id) }}">Quote #{{ quote.quote_number }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Add Item</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Main Form -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Add Quote Item</h5>
+                </div>
+                <div class="card-body">
+                    <form id="quote-item-form" method="POST" action="{{ url_for('quote_items_add', quote_id=quote.id) }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="name" class="form-label">Item Name</label>
+                                <input type="text" class="form-control" id="name" name="name" value="Print Job" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="quantity" class="form-label">Quantity</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity" value="100" min="1" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="paper_size" class="form-label">Paper Size</label>
+                                <select class="form-select" id="paper_size" name="paper_size">
+                                    <option value="8.5x11" selected>Letter (8.5 x 11)</option>
+                                    <option value="8.5x14">Legal (8.5 x 14)</option>
+                                    <option value="11x17">Tabloid (11 x 17)</option>
+                                    <option value="Custom">Custom Size</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="paper_type" class="form-label">Paper Type</label>
+                                <select class="form-select" id="paper_type" name="paper_type">
+                                    <option value="Bond" selected>Bond</option>
+                                    <option value="Text">Text</option>
+                                    <option value="Cover">Cover</option>
+                                    <option value="Cardstock">Cardstock</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="paper_weight" class="form-label">Paper Weight</label>
+                                <select class="form-select" id="paper_weight" name="paper_weight">
+                                    <option value="20#" selected>20# Bond</option>
+                                    <option value="24#">24# Bond</option>
+                                    <option value="60#">60# Text</option>
+                                    <option value="80#">80# Cover</option>
+                                    <option value="100#">100# Cover</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="n_up" class="form-label">Multiple-up Printing</label>
+                                <select class="form-select" id="n_up" name="n_up">
+                                    <option value="1" selected>1-up (Normal)</option>
+                                    <option value="2">2-up (Two per page)</option>
+                                    <option value="4">4-up (Four per page)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label">Print Type</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="print_type" id="print_type_bw" value="B/W" checked>
+                                    <label class="form-check-label" for="print_type_bw">
+                                        Black & White
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="print_type" id="print_type_color" value="Color">
+                                    <label class="form-check-label" for="print_type_color">
+                                        Full Color
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Sides</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="sides" id="sides_single" value="Single" checked>
+                                    <label class="form-check-label" for="sides_single">
+                                        Single-sided
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="sides" id="sides_double" value="Double">
+                                    <label class="form-check-label" for="sides_double">
+                                        Double-sided
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-12">
+                                <label for="description" class="form-label">Description/Notes</label>
+                                <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-4 bg-light">
+                            <div class="card-header">
+                                <h5 class="mb-0">Pricing</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <label for="unit_price" class="form-label">Unit Price ($)</label>
+                                        <input type="number" step="0.01" class="form-control" id="unit_price" name="unit_price" value="1.00" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="total_price" class="form-label">Total Price ($)</label>
+                                        <input type="number" step="0.01" class="form-control" id="total_price" name="total_price" value="100.00" readonly>
+                                    </div>
+                                    <div class="col-md-4 d-flex align-items-end">
+                                        <button type="button" id="update_price" class="btn btn-success w-100">
+                                            <i class="bi bi-calculator"></i> Calculate Total
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('quotes_edit', id=quote.id) }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Back to Quote
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Add to Quote
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-info-circle"></i> Quote Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>Quote #:</strong> {{ quote.quote_number }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Customer:</strong> {{ quote.customer.name }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Status:</strong> 
+                        <span class="badge bg-{{ 'success' if quote.status == 'accepted' else 'warning' if quote.status == 'draft' else 'secondary' }}">
+                            {{ quote.status|capitalize }}
+                        </span>
+                    </div>
+                    {% if quote.items %}
+                    <div class="mb-2">
+                        <strong>Items:</strong> {{ quote.items|length }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Current Total:</strong> ${{ "%.2f"|format(quote.total_price) }}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle"></i> This quote has no items yet.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-calculator"></i> Quick Pricing
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">Set the unit price to one of these preset values:</p>
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-outline-primary quick-price" data-price="0.10">$0.10 per copy</button>
+                        <button type="button" class="btn btn-outline-primary quick-price" data-price="0.25">$0.25 per copy</button>
+                        <button type="button" class="btn btn-outline-primary quick-price" data-price="0.50">$0.50 per copy</button>
+                        <button type="button" class="btn btn-outline-primary quick-price" data-price="1.00">$1.00 per copy</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Quote item form loaded');
+    
+    // Get form elements
+    const form = document.getElementById('quote-item-form');
+    const quantityInput = document.getElementById('quantity');
+    const unitPriceInput = document.getElementById('unit_price');
+    const totalPriceInput = document.getElementById('total_price');
+    const updatePriceButton = document.getElementById('update_price');
+    const quickPriceButtons = document.querySelectorAll('.quick-price');
+    
+    // Calculate total price based on unit price and quantity
+    function calculateTotal() {
+        const quantity = parseInt(quantityInput.value) || 1;
+        const unitPrice = parseFloat(unitPriceInput.value) || 0;
+        const totalPrice = quantity * unitPrice;
+        
+        // Update total price field
+        totalPriceInput.value = totalPrice.toFixed(2);
+        console.log(`Calculated total: ${quantity} × $${unitPrice.toFixed(2)} = $${totalPrice.toFixed(2)}`);
+    }
+    
+    // Add event listeners
+    if (quantityInput && unitPriceInput && updatePriceButton) {
+        // Calculate price when button is clicked
+        updatePriceButton.addEventListener('click', calculateTotal);
+        
+        // Calculate price when unit price or quantity changes
+        quantityInput.addEventListener('input', calculateTotal);
+        unitPriceInput.addEventListener('input', calculateTotal);
+        
+        // Calculate initial price
+        calculateTotal();
+    }
+    
+    // Quick price buttons
+    if (quickPriceButtons.length > 0) {
+        quickPriceButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const price = parseFloat(this.getAttribute('data-price'));
+                if (!isNaN(price)) {
+                    unitPriceInput.value = price.toFixed(2);
+                    calculateTotal();
+                }
+            });
+        });
+    }
+    
+    // Ensure price is calculated before form submission
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            calculateTotal();
+        });
+    }
+});
+</script>
+{% endblock %}

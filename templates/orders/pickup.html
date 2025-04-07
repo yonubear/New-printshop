@@ -1,0 +1,287 @@
+{% extends "layout.html" %}
+
+{% block title %}Record Order Pickup - {{ order.order_number }}{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.css">
+<style>
+    #signature-pad-container {
+        width: 100%;
+        height: 300px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        position: relative;
+        margin-bottom: 1rem;
+        background-color: #fff;
+    }
+    #signature-pad {
+        width: 100%;
+        height: 300px;
+        background-color: #fff;
+    }
+    .signature-actions {
+        margin-top: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    .method-selector {
+        margin-bottom: 1rem;
+    }
+    .method-option {
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 15px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    .method-option.active {
+        border-color: #0d6efd;
+        background-color: #f0f7ff;
+    }
+    .method-option i {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+        color: #555;
+    }
+    .method-option.active i {
+        color: #0d6efd;
+    }
+    #camera-container {
+        width: 100%;
+        max-width: 100%;
+        height: 300px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        position: relative;
+        margin-bottom: 1rem;
+        display: none;
+        overflow: hidden;
+        background-color: #333;
+    }
+    #camera-feed {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    #camera-output {
+        display: none;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background-color: #fff;
+    }
+    .camera-actions {
+        position: absolute;
+        bottom: 10px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        z-index: 10;
+    }
+    .verification-box {
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        padding: 15px;
+        margin-top: 1rem;
+        background-color: #f8f9fa;
+    }
+    #order-summary {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+    }
+    #order-summary.show {
+        max-height: 500px;
+    }
+    #pen-color-picker {
+        display: flex;
+        gap: 8px;
+        margin-left: 10px;
+    }
+    .color-option {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid #e0e0e0;
+    }
+    .color-option.active {
+        border-color: #333;
+    }
+</style>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Record Pickup: {{ order.order_number }}</h1>
+    <div>
+        <a href="{{ url_for('orders_view', id=order.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back to Order
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Order Pickup Information</h5>
+        <button type="button" class="btn btn-sm btn-outline-info" id="toggle-summary">
+            <i class="bi bi-info-circle me-1"></i> Order Summary
+        </button>
+    </div>
+    
+    <div id="order-summary" class="px-3 py-2 border-bottom bg-light">
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>Order #:</strong> {{ order.order_number }}</p>
+                <p><strong>Created:</strong> {{ order.created_at.strftime('%Y-%m-%d') }}</p>
+                <p><strong>Customer:</strong> {{ order.customer.name }}</p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Status:</strong> {{ order.status }}</p>
+                <p><strong>Total:</strong> ${{ "%.2f"|format(order.total_price) }}</p>
+                <p><strong>Items:</strong> {{ order.items|length }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card-body">
+        <form id="pickup-form" action="{{ url_for('process_order_pickup', order_id=order.id) }}" method="POST">
+            {{ form.hidden_tag() }}
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="pickup_by" class="form-label">Picked Up By</label>
+                    <input type="text" class="form-control" id="pickup_by" name="pickup_by" required>
+                    <div class="form-text">Name of person picking up the order</div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label class="form-label d-block">Confirmation Method</label>
+                    <div class="btn-group method-selector w-100" role="group">
+                        <div class="row w-100">
+                            <div class="col-6">
+                                <div class="method-option active text-center" data-method="signature">
+                                    <i class="bi bi-pen"></i>
+                                    <div>Digital Signature</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="method-option text-center" data-method="photo">
+                                    <i class="bi bi-camera"></i>
+                                    <div>Photo Capture</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="signature-method" class="method-content">
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <label class="form-label">Signature</label>
+                        <div id="signature-pad-container">
+                            <canvas id="signature-pad" width="600" height="200" style="border: 1px solid #ccc; width: 100%; height: 200px;"></canvas>
+                        </div>
+                        <input type="hidden" name="signature-data" id="signature-data">
+                        <div class="signature-actions d-flex align-items-center">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="clear-signature">Clear</button>
+                            <div id="pen-color-picker">
+                                <div class="color-option active" data-color="#000000" style="background-color: #000000;"></div>
+                                <div class="color-option" data-color="#0000ff" style="background-color: #0000ff;"></div>
+                                <div class="color-option" data-color="#006400" style="background-color: #006400;"></div>
+                            </div>
+                        </div>
+                        <div class="form-text">Please sign above to confirm pickup of this order</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="signature_name" class="form-label">Signature Name</label>
+                        <input type="text" class="form-control" id="signature_name" name="signature_name" required>
+                        <div class="form-text">Name of the person signing (may be the same as picked up by)</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="photo-method" class="method-content" style="display: none;">
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <label class="form-label">Photo Confirmation</label>
+                        <div id="camera-container">
+                            <video id="camera-feed" autoplay playsinline></video>
+                            <img id="camera-output" alt="Captured image">
+                            <div class="camera-actions">
+                                <button type="button" class="btn btn-light" id="capture-photo">
+                                    <i class="bi bi-camera-fill"></i> Capture
+                                </button>
+                                <button type="button" class="btn btn-light" id="retake-photo" style="display: none;">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Retake
+                                </button>
+                            </div>
+                        </div>
+                        <input type="hidden" name="photo_data" id="photo-data">
+                        <div class="form-text">Take a photo to confirm pickup of this order</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="photo_signature_name" class="form-label">Name for Confirmation</label>
+                        <input type="text" class="form-control" id="photo_signature_name" name="signature_name" required>
+                        <div class="form-text">Name of the person in the photo</div>
+                    </div>
+                </div>
+            </div>
+            
+
+            
+            <div class="verification-box">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="verification-check" required>
+                    <label class="form-check-label" for="verification-check">
+                        I confirm that I am authorized to pick up this order and all items have been received.
+                    </label>
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-between mt-4">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="print-receipt" name="print_receipt" value="1">
+                    <label class="form-check-label" for="print-receipt">
+                        Print receipt with signature
+                    </label>
+                </div>
+                
+                <div>
+                    <a href="{{ url_for('orders_view', id=order.id) }}" class="btn btn-outline-secondary me-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary" id="submit-button">Record Pickup</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Use our custom signature implementation instead of the external library -->
+<script src="/static/js/simple_signature.js"></script>
+<script>
+    // Global error handler to help debug issues
+    window.onerror = function(message, source, lineno, colno, error) {
+        console.error("JavaScript error:", message, "at", source, "line:", lineno, "column:", colno, "Error object:", error);
+        return false;
+    };
+    
+    // Toggle order summary visibility
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggleSummary = document.getElementById('toggle-summary');
+        if (toggleSummary) {
+            toggleSummary.addEventListener('click', function() {
+                document.getElementById('order-summary').classList.toggle('show');
+            });
+        }
+    });
+</script>
+{% endblock %}

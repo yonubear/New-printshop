@@ -1,0 +1,203 @@
+{% extends "layout.html" %}
+
+{% block title %}Edit Custom Price - Print Order Management System{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Edit Customer-Specific Price</h1>
+    <div>
+        <a href="{{ url_for('customer_prices_index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back to List
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-white py-3">
+        <h5 class="mb-0">Edit Custom Price</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" id="customerPriceForm">
+            {{ form.csrf_token }}
+            
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h6 class="border-bottom pb-2 mb-3">Basic Information</h6>
+                    <div class="mb-3">
+                        {{ form.customer_id.label(class="form-label") }}
+                        {{ form.customer_id(class="form-select") }}
+                        {% if form.customer_id.errors %}
+                            <div class="text-danger">
+                                {% for error in form.customer_id.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.name.label(class="form-label") }}
+                        {{ form.name(class="form-control") }}
+                        {% if form.name.errors %}
+                            <div class="text-danger">
+                                {% for error in form.name.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control", rows="3") }}
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <h6 class="border-bottom pb-2 mb-3">Price Details</h6>
+                    <div class="mb-3">
+                        {{ form.price_source.label(class="form-label") }}
+                        {{ form.price_source(class="form-select") }}
+                    </div>
+                    
+                    <!-- Dynamic selection fields based on price source -->
+                    <div id="savedPriceField" class="price-field mb-3 d-none">
+                        {{ form.saved_price_id.label(class="form-label") }}
+                        {{ form.saved_price_id(class="form-select") }}
+                    </div>
+                    
+                    <div id="paperOptionField" class="price-field mb-3 d-none">
+                        {{ form.paper_option_id.label(class="form-label") }}
+                        {{ form.paper_option_id(class="form-select") }}
+                    </div>
+                    
+                    <div id="finishingOptionField" class="price-field mb-3 d-none">
+                        {{ form.finishing_option_id.label(class="form-label") }}
+                        {{ form.finishing_option_id(class="form-select") }}
+                    </div>
+                    
+                    <div id="printPricingField" class="price-field mb-3 d-none">
+                        {{ form.print_pricing_id.label(class="form-label") }}
+                        {{ form.print_pricing_id(class="form-select") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.price.label(class="form-label") }}
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            {{ form.price(class="form-control") }}
+                        </div>
+                        {% if form.price.errors %}
+                            <div class="text-danger">
+                                {% for error in form.price.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h6 class="border-bottom pb-2 mb-3">Discount Settings</h6>
+                    <div class="mb-3">
+                        {{ form.discount_type.label(class="form-label") }}
+                        {{ form.discount_type(class="form-select") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.discount_value.label(class="form-label") }}
+                        <div class="input-group">
+                            <span id="discountPrefix" class="input-group-text">%</span>
+                            {{ form.discount_value(class="form-control") }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <h6 class="border-bottom pb-2 mb-3">Validity Period</h6>
+                    <div class="mb-3">
+                        {{ form.valid_from.label(class="form-label") }}
+                        {{ form.valid_from(class="form-control", type="date") }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.valid_until.label(class="form-label") }}
+                        {{ form.valid_until(class="form-control", type="date") }}
+                        <div class="form-text">Leave blank if the price never expires</div>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        {{ form.is_active(class="form-check-input") }}
+                        {{ form.is_active.label(class="form-check-label") }}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <h6 class="border-bottom pb-2 mb-3">Additional Notes</h6>
+                <div class="mb-3">
+                    {{ form.notes.label(class="form-label") }}
+                    {{ form.notes(class="form-control", rows="3") }}
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-end">
+                <a href="{{ url_for('customer_prices_index') }}" class="btn btn-outline-secondary me-2">Cancel</a>
+                {{ form.submit(class="btn btn-primary") }}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const priceSourceSelect = document.getElementById('price_source');
+        const priceFields = document.querySelectorAll('.price-field');
+        const discountTypeSelect = document.getElementById('discount_type');
+        const discountPrefix = document.getElementById('discountPrefix');
+        
+        // Show/hide price fields based on selected source
+        function updatePriceFields() {
+            // Hide all price fields first
+            priceFields.forEach(field => {
+                field.classList.add('d-none');
+            });
+            
+            // Show relevant field based on selection
+            const selectedSource = priceSourceSelect.value;
+            if (selectedSource === 'saved_price') {
+                document.getElementById('savedPriceField').classList.remove('d-none');
+            } else if (selectedSource === 'paper_option') {
+                document.getElementById('paperOptionField').classList.remove('d-none');
+            } else if (selectedSource === 'finishing_option') {
+                document.getElementById('finishingOptionField').classList.remove('d-none');
+            } else if (selectedSource === 'print_pricing') {
+                document.getElementById('printPricingField').classList.remove('d-none');
+            }
+        }
+        
+        // Update discount prefix based on discount type
+        function updateDiscountPrefix() {
+            if (discountTypeSelect.value === 'percentage') {
+                discountPrefix.textContent = '%';
+            } else {
+                discountPrefix.textContent = '$';
+            }
+        }
+        
+        // Set up event listeners
+        priceSourceSelect.addEventListener('change', updatePriceFields);
+        discountTypeSelect.addEventListener('change', updateDiscountPrefix);
+        
+        // Initialize fields on page load
+        updatePriceFields();
+        updateDiscountPrefix();
+    });
+</script>
+{% endblock %}

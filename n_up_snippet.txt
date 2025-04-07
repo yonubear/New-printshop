@@ -1,0 +1,28 @@
+                        <div class="col-md-4">
+                            <label for="n_up" class="form-label">N-up Printing</label>
+                            <select name="n_up" id="n_up" class="form-select">
+                                <option value="1">1-up (Normal)</option>
+                                <option value="2">2-up</option>
+                                <option value="4">4-up</option>
+                                <option value="8">8-up</option>
+                                <option value="9">9-up</option>
+                                <option value="16">16-up</option>
+                            </select>
+                            <small class="text-muted">Multiple pages per sheet</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="paper_weight" class="form-label">Paper Weight</label>
+                            <select name="paper_weight" id="paper_weight" class="form-select">
+                                <option value="">-- Select Weight --</option>
+                                <option value="20# Bond">20# Bond</option>
+                                <option value="24# Bond">24# Bond</option>
+                                <option value="60# Text">60# Text</option>
+                                <option value="80# Text">80# Text</option>
+                                <option value="80# Cover">80# Cover</option>
+                                <option value="100# Cover">100# Cover</option>
+                                <option value="110# Index">110# Index</option>
+                            </select>
+                        </div>

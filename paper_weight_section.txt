@@ -1,0 +1,16 @@
+                            <label for="paper_weight" class="form-label">Paper Weight</label>
+                            <select name="paper_weight" id="paper_weight" class="form-select">
+                                <option value="">-- Select Weight --</option>
+                                <option value="20# Bond">20# Bond</option>
+                                <option value="24# Bond">24# Bond</option>
+                                <option value="60# Text">60# Text</option>
+                                <option value="80# Text">80# Text</option>
+                                <option value="80# Cover">80# Cover</option>
+                                <option value="100# Cover">100# Cover</option>
+                                <option value="110# Index">110# Index</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="paper_type" class="form-label">Available Paper Options</label>

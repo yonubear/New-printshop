@@ -1,0 +1,322 @@
+{% extends 'layout.html' %}
+
+{% block title %}Time Period Report{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="my-4">Time Period Report</h1>
+        <div>
+            <a href="{{ url_for('reports_index') }}" class="btn btn-outline-secondary">Back to Reports</a>
+            <button onclick="window.print()" class="btn btn-success ms-2">Print Report</button>
+        </div>
+    </div>
+    
+    <!-- Date Range Selection -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Date Range</h5>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('reports_time_period') }}" method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" name="start_date" class="form-control" value="{{ start_date }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">End Date</label>
+                    <input type="date" name="end_date" class="form-control" value="{{ end_date }}" required>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">Update Report</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-light text-center">
+                <div class="card-body">
+                    <h6 class="card-title">Total Orders</h6>
+                    <h2>{{ order_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light text-center">
+                <div class="card-body">
+                    <h6 class="card-title">Total Revenue</h6>
+                    <h2 class="text-primary">${{ "%.2f"|format(total_revenue) }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light text-center">
+                <div class="card-body">
+                    <h6 class="card-title">Total Cost</h6>
+                    <h2 class="text-danger">${{ "%.2f"|format(total_cost) }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light text-center">
+                <div class="card-body">
+                    <h6 class="card-title">Total Profit</h6>
+                    <h2 class="text-success">${{ "%.2f"|format(total_profit) }}</h2>
+                    <p class="text-muted mb-0">Margin: {{ "%.1f"|format(profit_margin) }}%</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Monthly Breakdown Chart -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Monthly Breakdown</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="monthlyChart"></canvas>
+        </div>
+    </div>
+    
+    <!-- Orders Table -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Orders in Selected Period</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th>Title</th>
+                            <th>Status</th>
+                            <th>Revenue</th>
+                            <th>Cost</th>
+                            <th>Profit</th>
+                            <th>Margin %</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td>{{ order.order_number }}</td>
+                            <td>{{ order.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ order.customer.name }}</td>
+                            <td>{{ order.title }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if order.status == 'completed' %}bg-success
+                                    {% elif order.status == 'in-progress' %}bg-primary
+                                    {% elif order.status == 'cancelled' %}bg-danger
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ order.status }}
+                                </span>
+                            </td>
+                            <td>${{ "%.2f"|format(order.total_price) }}</td>
+                            <td>${{ "%.2f"|format(order_costs[order.id]) }}</td>
+                            <td>
+                                <span class="{% if order.total_price - order_costs[order.id] > 0 %}text-success{% else %}text-danger{% endif %}">
+                                    ${{ "%.2f"|format(order.total_price - order_costs[order.id]) }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if order.total_price > 0 %}
+                                <span class="{% if (order.total_price - order_costs[order.id]) / order.total_price * 100 > 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ "%.1f"|format((order.total_price - order_costs[order.id]) / order.total_price * 100) }}%
+                                </span>
+                                {% else %}
+                                <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('orders_view', id=order.id) }}" class="btn btn-sm btn-outline-primary">View</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Customer Breakdown -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Customer Breakdown</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <canvas id="customerRevenueChart"></canvas>
+                </div>
+                <div class="col-md-6">
+                    <canvas id="customerProfitChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Monthly data
+    const monthlyData = {{ monthly_data|tojson }};
+    const months = Object.keys(monthlyData);
+    
+    new Chart(document.getElementById('monthlyChart'), {
+        type: 'bar',
+        data: {
+            labels: months,
+            datasets: [{
+                label: 'Revenue',
+                data: months.map(month => monthlyData[month].revenue),
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1,
+                order: 2
+            }, {
+                label: 'Profit',
+                data: months.map(month => monthlyData[month].profit),
+                backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1,
+                order: 1
+            }, {
+                label: 'Order Count',
+                data: months.map(month => monthlyData[month].order_count),
+                type: 'line',
+                fill: false,
+                borderColor: 'rgba(153, 102, 255, 1)',
+                tension: 0.1,
+                yAxisID: 'y1',
+                order: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    type: 'linear',
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Amount ($)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value;
+                        }
+                    }
+                },
+                y1: {
+                    beginAtZero: true,
+                    type: 'linear',
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Order Count'
+                    },
+                    grid: {
+                        drawOnChartArea: false
+                    },
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+    
+    // Customer data
+    const customerData = {{ customer_data|tojson }};
+    
+    // Get top customers by revenue
+    const topCustomersByRevenue = Object.values(customerData)
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 8);
+    
+    new Chart(document.getElementById('customerRevenueChart'), {
+        type: 'pie',
+        data: {
+            labels: topCustomersByRevenue.map(c => c.name),
+            datasets: [{
+                data: topCustomersByRevenue.map(c => c.revenue),
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(255, 206, 86, 0.7)',
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(153, 102, 255, 0.7)',
+                    'rgba(255, 159, 64, 0.7)',
+                    'rgba(199, 199, 199, 0.7)',
+                    'rgba(83, 102, 255, 0.7)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'right',
+                },
+                title: {
+                    display: true,
+                    text: 'Revenue by Customer'
+                }
+            }
+        }
+    });
+    
+    // Get top customers by profit
+    const topCustomersByProfit = Object.values(customerData)
+        .sort((a, b) => b.profit - a.profit)
+        .slice(0, 8);
+    
+    new Chart(document.getElementById('customerProfitChart'), {
+        type: 'pie',
+        data: {
+            labels: topCustomersByProfit.map(c => c.name),
+            datasets: [{
+                data: topCustomersByProfit.map(c => c.profit),
+                backgroundColor: [
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(255, 206, 86, 0.7)',
+                    'rgba(153, 102, 255, 0.7)',
+                    'rgba(255, 159, 64, 0.7)',
+                    'rgba(199, 199, 199, 0.7)',
+                    'rgba(83, 102, 255, 0.7)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'right',
+                },
+                title: {
+                    display: true,
+                    text: 'Profit by Customer'
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
+
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends "layout.html" %}
+
+{% block title %}Paper Options - Print Order Management System{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Paper Options</h1>
+    <a href="{{ url_for('paper_options_create') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i> Add Paper Option
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Weight</th>
+                        <th>Size</th>
+                        <th>Dimensions</th>
+                        <th>Dimensions</th>
+                        <th>Color</th>
+                        <th>Pricing Method</th>
+                        <th>Price</th>
+                        <th>Cost</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if paper_options %}
+                        {% for option in paper_options %}
+                        <tr>
+                            <td>
+                                <strong>{{ option.name }}</strong>
+                                {% if option.description %}
+                                <br><small class="text-muted">{{ option.description }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ option.category }}</td>
+                            <td>{{ option.weight }}</td>
+                            <td>
+                                {{ option.size }}
+                                {% if option.is_roll %}
+                                <span class="badge bg-info">Roll</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ option.color }}</td>
+                            <td>
+                                {% if option.pricing_method == 'sqft' %}
+                                    Square Footage
+                                {% else %}
+                                    Per Sheet
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if option.pricing_method == 'sqft' %}
+                                    ${{ "%.2f"|format(option.price_per_sqft) }}/sqft
+                                {% else %}
+                                    ${{ "%.2f"|format(option.price_per_sheet) }}/sheet
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if option.pricing_method == 'sqft' %}
+                                    ${{ "%.2f"|format(option.cost_per_sqft) }}/sqft
+                                {% else %}
+                                    ${{ "%.2f"|format(option.cost_per_sheet) }}/sheet
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('paper_options_edit', id=option.id) }}" class="btn btn-outline-secondary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ option.id }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                                
+                                <!-- Delete Modal -->
+                                <div class="modal fade" id="deleteModal{{ option.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ option.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="deleteModalLabel{{ option.id }}">Confirm Deletion</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                Are you sure you want to delete the paper option "{{ option.name }}"?
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <form action="{{ url_for('paper_options_delete', id=option.id) }}" method="post">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="10" class="text-center py-4">No paper options defined</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

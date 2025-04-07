@@ -1,0 +1,158 @@
+{% extends "layout.html" %}
+
+{% block title %}Track Order {{ order.order_number }} - Print Order Management System{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/tracking.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Track Order: {{ order.order_number }}</h1>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Order Tracking Information</h5>
+    </div>
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-4 fw-bold">Order Number:</div>
+            <div class="col-md-8">{{ order.order_number }}</div>
+        </div>
+        
+        <div class="row mb-3">
+            <div class="col-md-4 fw-bold">Status:</div>
+            <div class="col-md-8">
+                <span class="badge bg-{{ 'primary' if order.status == 'new' else 'warning' if order.status == 'in-progress' else 'success' if order.status == 'completed' else 'danger' }}">
+                    {{ order.status|upper }}
+                </span>
+            </div>
+        </div>
+        
+        <div class="row mb-3">
+            <div class="col-md-4 fw-bold">Order Date:</div>
+            <div class="col-md-8">{{ order.created_at.strftime('%Y-%m-%d') }}</div>
+        </div>
+        
+        <div class="row mb-3">
+            <div class="col-md-4 fw-bold">Due Date:</div>
+            <div class="col-md-8">
+                {% if order.due_date %}
+                    {{ order.due_date.strftime('%Y-%m-%d') }}
+                {% else %}
+                    <span class="text-muted">Not specified</span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="row mb-3">
+            <div class="col-md-4 fw-bold">Title:</div>
+            <div class="col-md-8">{{ order.title }}</div>
+        </div>
+        
+        {% if order.description %}
+        <div class="row mb-3">
+            <div class="col-md-4 fw-bold">Description:</div>
+            <div class="col-md-8">{{ order.description }}</div>
+        </div>
+        {% endif %}
+        
+        <div class="row mb-3">
+            <div class="col-md-4 fw-bold">Pickup Status:</div>
+            <div class="col-md-8">
+                {% if order.is_picked_up %}
+                    <span class="badge bg-success">Picked Up</span>
+                    <span class="ms-2">on {{ order.pickup_date.strftime('%Y-%m-%d %H:%M') }}</span>
+                {% else %}
+                    <span class="badge bg-warning">Not Picked Up</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Status Workflow Visualization -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Order Progress</h5>
+    </div>
+    <div class="card-body">
+        <div class="workflow-steps">
+            <div class="workflow-step {% if order.status == 'new' %}active{% elif order.status in ['in-progress', 'completed'] %}completed{% endif %}" data-status="new">
+                <div class="step-icon">
+                    <i class="bi bi-plus-circle"></i>
+                </div>
+                <div class="step-label">New</div>
+            </div>
+            <div class="workflow-step {% if order.status == 'in-progress' %}active{% elif order.status == 'completed' %}completed{% endif %}" data-status="in-progress">
+                <div class="step-icon">
+                    <i class="bi bi-gear"></i>
+                </div>
+                <div class="step-label">In Progress</div>
+            </div>
+            <div class="workflow-step {% if order.status == 'completed' %}active{% endif %}" data-status="completed">
+                <div class="step-icon">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="step-label">Completed</div>
+            </div>
+            <div class="workflow-step {% if order.status == 'cancelled' %}active{% endif %}" data-status="cancelled">
+                <div class="step-icon">
+                    <i class="bi bi-x-circle"></i>
+                </div>
+                <div class="step-label">Cancelled</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Items Summary -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Order Items</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Quantity</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if order.items %}
+                        {% for item in order.items %}
+                        <tr>
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'info' if item.status == 'pending' else 'warning' if item.status == 'in-progress' else 'success' }}">
+                                    {{ item.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="3" class="text-center py-4">No items in this order.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if order.status == 'completed' and not order.is_picked_up %}
+<div class="alert alert-success">
+    <i class="bi bi-info-circle-fill me-2"></i>
+    Your order is ready for pickup! Please visit our location with your order number.
+</div>
+{% endif %}
+
+{% endblock %}

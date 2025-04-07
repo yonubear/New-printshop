@@ -1,0 +1,147 @@
+/**
+ * Print Preview Styles
+ * Custom CSS for the interactive print preview feature
+ */
+
+.print-preview-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Paper preview visualization */
+.paper-preview {
+    border: 1px solid #ccc;
+    background-color: white;
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+    position: relative;
+    transition: all 0.3s ease;
+    margin: 20px auto;
+}
+
+/* Default paper sizes scaled to fit the preview area */
+.paper-preview.letter {
+    width: 215px;  /* 8.5 inches * 25.4 mm/in / 4 */
+    height: 279px; /* 11 inches * 25.4 mm/in / 4 */
+}
+
+.paper-preview.legal {
+    width: 215px;  /* 8.5 inches * 25.4 mm/in / 4 */
+    height: 356px; /* 14 inches * 25.4 mm/in / 4 */
+}
+
+.paper-preview.tabloid {
+    width: 279px;  /* 11 inches * 25.4 mm/in / 4 */
+    height: 432px; /* 17 inches * 25.4 mm/in / 4 */
+}
+
+/* Content area inside paper preview */
+.paper-content {
+    position: absolute;
+    top: 10%;
+    left: 10%;
+    width: 80%;
+    height: 80%;
+    background-color: rgba(200, 200, 200, 0.1);
+    border: 1px dashed #aaa;
+    padding: 10px;
+    font-size: 8px;
+    overflow: hidden;
+}
+
+/* Visual indicators for color vs black and white */
+.paper-content.color {
+    background-image: linear-gradient(45deg, #f3f3f3 25%, transparent 25%, transparent 75%, #f3f3f3 75%),
+                     linear-gradient(45deg, #f3f3f3 25%, transparent 25%, transparent 75%, #f3f3f3 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 8px 8px;
+}
+
+.paper-content.bw {
+    background-image: linear-gradient(45deg, #f9f9f9 25%, transparent 25%, transparent 75%, #f9f9f9 75%),
+                     linear-gradient(45deg, #f9f9f9 25%, transparent 25%, transparent 75%, #f9f9f9 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 8px 8px;
+}
+
+/* Back side of double-sided printing */
+.back-side {
+    display: none;
+    background-color: #f9f9f9;
+}
+
+/* Cost breakdown section styling */
+.cost-breakdown {
+    border-left: 4px solid #0d6efd;
+    padding-left: 15px;
+    margin-top: 20px;
+}
+
+/* Finishing options styling */
+.finishing-option {
+    margin-bottom: 8px;
+    padding: 8px;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+}
+
+/* Loading indicator */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    display: none;
+}
+
+/* Profit information */
+.profit-info {
+    border-left: 4px solid #28a745;
+    padding-left: 15px;
+    margin-top: 10px;
+}
+
+/* Refresh indicator */
+.refresh-indicator {
+    color: #0d6efd;
+    font-size: 0.8rem;
+    display: none;
+}
+
+/* Make cost options sticky on larger screens */
+@media (min-width: 768px) {
+    .cost-options {
+        position: sticky;
+        top: 20px;
+    }
+}
+
+/* Materials list styling */
+.materials-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 8px;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+}
+
+.materials-list-item .material-icon {
+    width: 24px;
+    display: inline-block;
+    text-align: center;
+    margin-right: 10px;
+}
+
+/* Tooltip for additional information */
+.info-tooltip {
+    cursor: help;
+    color: #6c757d;
+}

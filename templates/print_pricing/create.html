@@ -1,0 +1,131 @@
+{% extends "layout.html" %}
+
+{% block title %}Add Print Pricing - Print Order Management System{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Add Print Pricing</h1>
+    <a href="{{ url_for('print_pricing_index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Print Pricing
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form action="{{ url_for('print_pricing_create') }}" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label for="name" class="form-label">Name *</label>
+                    <input type="text" name="name" id="name" class="form-control" required>
+                    <div class="form-text">A descriptive name for this pricing configuration (e.g., "Letter Full Color")</div>
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="paper_size" class="form-label">Paper Size *</label>
+                    <select name="paper_size" id="paper_size" class="form-select" required>
+                        <option value="">-- Select Size --</option>
+                        <option value="Letter">Letter (8.5 x 11)</option>
+                        <option value="Legal">Legal (8.5 x 14)</option>
+                        <option value="Tabloid">Tabloid (11 x 17)</option>
+                        <option value="12x18">12 x 18</option>
+                        <option value="13x19">13 x 19</option>
+                        <option value="Any">Any Size (Universal)</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="color_type" class="form-label">Color Type *</label>
+                    <select name="color_type" id="color_type" class="form-select" required>
+                        <option value="">-- Select Type --</option>
+                        <option value="Full Color">Full Color</option>
+                        <option value="Black & White">Black & White</option>
+                        <option value="Spot Color">Spot Color</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="pricing_method" class="form-label">Pricing Method *</label>
+                <select name="pricing_method" id="pricing_method" class="form-select" required>
+                    <option value="side">Per Side</option>
+                    <option value="sqft">Square Footage</option>
+                </select>
+                <div class="form-text">Choose how this printing is priced - per side or by square footage</div>
+            </div>
+            
+            <div class="row mb-3 per-side-pricing">
+                <div class="col-md-6">
+                    <label for="price_per_side" class="form-label">Price per Side (Retail) *</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" name="price_per_side" id="price_per_side" class="form-control" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-text">Retail price charged to customers per printed side</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="cost_per_side" class="form-label">Cost per Side</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" name="cost_per_side" id="cost_per_side" class="form-control" step="0.01" min="0" value="0.00">
+                    </div>
+                    <div class="form-text">Your cost per side (for profit calculations)</div>
+                </div>
+            </div>
+            
+            <div class="row mb-3 sqft-pricing" style="display: none;">
+                <div class="col-md-6">
+                    <label for="price_per_sqft" class="form-label">Price per Sq Ft (Retail) *</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" name="price_per_sqft" id="price_per_sqft" class="form-control" step="0.01" min="0" value="0.00">
+                    </div>
+                    <div class="form-text">Retail price per square foot</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="cost_per_sqft" class="form-label">Cost per Sq Ft</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" name="cost_per_sqft" id="cost_per_sqft" class="form-control" step="0.01" min="0" value="0.00">
+                    </div>
+                    <div class="form-text">Your cost per square foot (for profit calculations)</div>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="notes" class="form-label">Notes</label>
+                <textarea name="notes" id="notes" class="form-control" rows="2"></textarea>
+                <div class="form-text">Any additional details or special considerations</div>
+            </div>
+            
+            <div class="text-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save me-1"></i> Save Print Pricing
+                </button>
+            </div>
+            
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const pricingMethodSelect = document.getElementById('pricing_method');
+                    const perSidePricing = document.querySelector('.per-side-pricing');
+                    const sqftPricing = document.querySelector('.sqft-pricing');
+                    
+                    pricingMethodSelect.addEventListener('change', function() {
+                        if (this.value === 'sqft') {
+                            perSidePricing.style.display = 'none';
+                            sqftPricing.style.display = 'flex';
+                        } else {
+                            perSidePricing.style.display = 'flex';
+                            sqftPricing.style.display = 'none';
+                        }
+                    });
+                });
+            </script>
+        </form>
+    </div>
+</div>
+{% endblock %}

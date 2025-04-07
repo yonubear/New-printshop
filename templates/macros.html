@@ -1,0 +1,137 @@
+{% macro csrf_form(action="", method="post", classes="", id="", button_text="Submit", button_classes="btn btn-primary") -%}
+<form action="{{ action }}" method="{{ method }}" class="{{ classes }}" {% if id %}id="{{ id }}"{% endif %}>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {% if caller is defined %}
+        {{ caller() }}
+        <button type="submit" class="{{ button_classes }}">{{ button_text }}</button>
+    {% endif %}
+</form>
+{%- endmacro %}
+
+{% macro csrf_token() -%}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+{%- endmacro %}
+
+{% macro form_group(label, name, type="text", value="", required=false, options=None, classes="form-control", help_text=None) -%}
+    <div class="mb-3">
+        <label for="{{ name }}" class="form-label">{{ label }} {% if required %}*{% endif %}</label>
+        
+        {% if type == "select" and options %}
+            <select name="{{ name }}" id="{{ name }}" class="{{ classes }}" {% if required %}required{% endif %}>
+                <option value="">-- Select {{ label }} --</option>
+                {% for option in options %}
+                    <option value="{{ option[0] }}" {% if option[0] == value %}selected{% endif %}>
+                        {{ option[1] }}
+                    </option>
+                {% endfor %}
+            </select>
+        {% elif type == "textarea" %}
+            <textarea name="{{ name }}" id="{{ name }}" class="{{ classes }}" {% if required %}required{% endif %}>{{ value }}</textarea>
+        {% elif type == "checkbox" %}
+            <div class="form-check">
+                <input type="checkbox" name="{{ name }}" id="{{ name }}" class="form-check-input" value="1" {% if value %}checked{% endif %}>
+                <label class="form-check-label" for="{{ name }}">{{ label }}</label>
+            </div>
+        {% else %}
+            <input type="{{ type }}" name="{{ name }}" id="{{ name }}" class="{{ classes }}" 
+                   value="{{ value }}" {% if required %}required{% endif %}>
+        {% endif %}
+        
+        {% if help_text %}
+            <div class="form-text">{{ help_text }}</div>
+        {% endif %}
+    </div>
+{%- endmacro %}
+
+{% macro alert(type, message) -%}
+    <div class="alert alert-{{ type }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+{%- endmacro %}
+
+{% macro card(title, footer=None) -%}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">{{ title }}</h5>
+        </div>
+        <div class="card-body">
+            {% if caller is defined %}
+                {{ caller() }}
+            {% endif %}
+        </div>
+        {% if footer %}
+            <div class="card-footer">
+                {{ footer }}
+            </div>
+        {% endif %}
+    </div>
+{%- endmacro %}
+
+{% macro confirmation_modal(id, title, message, confirm_text="Confirm", cancel_text="Cancel", confirm_class="btn-danger") -%}
+    <div class="modal fade" id="{{ id }}" tabindex="-1" aria-labelledby="{{ id }}Label" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="{{ id }}Label">{{ title }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    {{ message }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ cancel_text }}</button>
+                    <button type="button" class="btn {{ confirm_class }} confirm-action">{{ confirm_text }}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{%- endmacro %}
+
+{% macro pagination(pagination, endpoint) -%}
+    {% if pagination.pages > 1 %}
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                {% if pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for(endpoint, page=pagination.prev_num) }}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+                
+                {% for page in pagination.iter_pages(left_edge=1, left_current=2, right_current=2, right_edge=1) %}
+                    {% if page %}
+                        {% if page == pagination.page %}
+                            <li class="page-item active"><a class="page-link" href="#">{{ page }}</a></li>
+                        {% else %}
+                            <li class="page-item"><a class="page-link" href="{{ url_for(endpoint, page=page) }}">{{ page }}</a></li>
+                        {% endif %}
+                    {% else %}
+                        <li class="page-item disabled"><a class="page-link" href="#">...</a></li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for(endpoint, page=pagination.next_num) }}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
+{%- endmacro %}

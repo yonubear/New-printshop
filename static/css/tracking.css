@@ -1,0 +1,123 @@
+/* Order Tracking Styles */
+
+.workflow-steps {
+    display: flex;
+    justify-content: space-between;
+    margin: 30px 0;
+    position: relative;
+}
+
+.workflow-steps::before {
+    content: '';
+    position: absolute;
+    top: 30px;
+    left: 50px;
+    right: 50px;
+    height: 4px;
+    background-color: #e9ecef;
+    z-index: 1;
+}
+
+.workflow-step {
+    width: 80px;
+    text-align: center;
+    position: relative;
+    z-index: 2;
+}
+
+.step-icon {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 10px;
+    border-radius: 50%;
+    background-color: #e9ecef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #6c757d;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.step-label {
+    font-size: 14px;
+    color: #6c757d;
+    margin-top: 5px;
+    font-weight: 500;
+}
+
+/* Active step */
+.workflow-step.active .step-icon {
+    background-color: #0d6efd;
+    color: white;
+    box-shadow: 0 0 0 5px rgba(13, 110, 253, 0.2);
+}
+
+.workflow-step.active .step-label {
+    color: #0d6efd;
+    font-weight: 600;
+}
+
+/* Completed step */
+.workflow-step.completed .step-icon {
+    background-color: #198754;
+    color: white;
+}
+
+.workflow-step.completed .step-label {
+    color: #198754;
+}
+
+/* Cancelled step */
+.workflow-step[data-status="cancelled"].active .step-icon {
+    background-color: #dc3545;
+    color: white;
+    box-shadow: 0 0 0 5px rgba(220, 53, 69, 0.2);
+}
+
+.workflow-step[data-status="cancelled"].active .step-label {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+/* Connect completed steps */
+.workflow-step.completed::after {
+    content: '';
+    position: absolute;
+    top: 30px;
+    left: 60px;
+    width: calc(100% - 20px);
+    height: 4px;
+    background-color: #198754;
+    z-index: 1;
+}
+
+/* QR code container styles */
+.qr-container {
+    padding: 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background-color: white;
+    display: inline-block;
+}
+
+/* For responsive design */
+@media (max-width: 768px) {
+    .workflow-steps {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .workflow-steps::before {
+        display: none;
+    }
+    
+    .workflow-step {
+        margin: 10px 20px;
+    }
+    
+    .workflow-step.completed::after {
+        display: none;
+    }
+}

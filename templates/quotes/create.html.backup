@@ -1,0 +1,1124 @@
+{% extends 'layout.html' %}
+{% block title %}Create Quote{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1>Create New Quote</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('orders_index') }}">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('quotes_index') }}">Quotes</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Create</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Quote Details</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('quotes_create') }}" method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="mb-3">
+                            <label for="customer_id" class="form-label">Customer *</label>
+                            <div class="input-group">
+                                <select name="customer_id" id="customer_id" class="form-select" required>
+                                    <option value="">Select a customer</option>
+                                    {% for customer in customers %}
+                                        <option value="{{ customer.id }}">
+                                            {{ customer.name }} {% if customer.discount_percentage > 0 %}({{ customer.discount_percentage }}% discount){% endif %}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <a href="{{ url_for('customers_create') }}" class="btn btn-outline-secondary" target="_blank">
+                                    <i class="bi bi-plus-circle"></i> New
+                                </a>
+                                <a href="#" class="btn btn-outline-secondary" id="refresh-customers">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="title" class="form-label">Title/Description *</label>
+                                <input type="text" name="title" id="title" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="quote_number" class="form-label">Quote Number</label>
+                                <input type="text" name="quote_number" id="quote_number" class="form-control" value="{{ quote_number }}" readonly>
+                                <div class="form-text">Auto-generated, can be changed if needed</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="status" class="form-label">Status</label>
+                                <select name="status" id="status" class="form-select">
+                                    {% for status_option in ['pending', 'approved', 'rejected', 'converted'] %}
+                                        <option value="{{ status_option }}" >
+                                            {{ status_option|capitalize }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="finish_size" class="form-label">Finish Size</label>
+                                <input type="text" name="finish_size" id="finish_size" class="form-control" value="">
+                                <div class="form-text">e.g., 8.5x11, 11x17, etc.</div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('quotes_index') }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Save Quote</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Quote Items</h5>
+                    <div>
+                        <a href="#" class="btn btn-sm btn-outline-success" id="show-saved-prices">
+                            <i class="bi bi-tag"></i> Saved Prices
+                        </a>
+                        <a href="#" class="btn btn-sm btn-outline-primary" id="show-customer-prices">
+                            <i class="bi bi-person-vcard"></i> Customer Prices
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <div class="alert alert-info" id="save-quote-first" style="display: none;">
+                        <i class="bi bi-info-circle"></i> Please save the quote first before adding items.
+                    </div>
+                    
+                    <div id="quote-items-container" style="display: none;">
+                        <div class="table-responsive mb-3">
+                            <table class="table table-bordered table-hover" id="quote-items-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Quantity</th>
+                                        <th>Unit Price</th>
+                                        <th>Total</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="3" class="text-end"><strong>Quote Total:</strong></td>
+                                        <td colspan="2"><strong id="quote-total">$0.00</strong></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        
+                        <button type="button" class="btn btn-success" id="add-quote-item-btn">
+                            <i class="bi bi-plus-circle"></i> Add Item
+                        </button>
+                    </div>
+                </div>
+                
+                <form action="#" method="post" id="quote-item-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="name" class="form-label">Item Name *</label>
+                            <input type="text" name="name" id="name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="sku" class="form-label">SKU</label>
+                            <input type="text" name="sku" id="sku" class="form-control">
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="quantity" class="form-label">Quantity *</label>
+                            <input type="number" name="quantity" id="quantity" class="form-control" min="1" value="1" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="unit_price" class="form-label">Unit Price ($) *</label>
+                            <input type="number" name="unit_price" id="unit_price" class="form-control" min="0" step="0.01" value="0.00" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="total_price" class="form-label">Total Price ($)</label>
+                            <input type="text" id="total_price" class="form-control" readonly>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea name="description" id="description" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="width" class="form-label">Width (inches)</label>
+                            <input type="number" name="width" id="width" class="form-control" min="0" step="0.01">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="height" class="form-label">Height (inches)</label>
+                            <input type="number" name="height" id="height" class="form-control" min="0" step="0.01">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="pages" class="form-label">Pages</label>
+                            <input type="number" name="pages" id="pages" class="form-control" min="1" value="1">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="n_up" class="form-label">N-Up</label>
+                            <select name="n_up" id="n_up" class="form-select">
+                                <option value="1">1-up (Standard)</option>
+                                <option value="2">2-up</option>
+                                <option value="4">4-up</option>
+                                <option value="8">8-up</option>
+                                <option value="16">16-up</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <h5>Print Details</h5>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="is_booklet" name="is_booklet">
+                                <label class="form-check-label" for="is_booklet">Is this a booklet?</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="duplex" name="duplex">
+                                <label class="form-check-label" for="duplex">Double-sided printing</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="regular-print-options">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="print_type" class="form-label">Print Type</label>
+                                <select name="print_type" id="print_type" class="form-select">
+                                    <option value="bw">Black & White</option>
+                                    <option value="color">Color</option>
+                                    <option value="mixed">Mixed B&W/Color</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="paper_size" class="form-label">Paper Size</label>
+                                <select name="paper_size" id="paper_size" class="form-select">
+                                    <option value="letter">Letter (8.5 x 11)</option>
+                                    <option value="legal">Legal (8.5 x 14)</option>
+                                    <option value="tabloid">Tabloid (11 x 17)</option>
+                                    <option value="custom">Custom</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="paper_type" class="form-label">Paper Type</label>
+                                <select name="paper_type" id="paper_type" class="form-select">
+                                    {% for paper in papers %}
+                                        <option value="{{ paper.id }}" data-size="{{ paper.size }}" data-weight="{{ paper.weight }}" data-type="{{ paper.type }}" data-color="{{ paper.color }}" data-cost="{{ paper.cost_per_sheet }}">
+                                            {{ paper.name }} ({{ paper.size }}, {{ paper.weight }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="booklet-options" style="display: none;">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="booklet_size" class="form-label">Booklet Size</label>
+                                <select name="booklet_size" id="booklet_size" class="form-select">
+                                    <option value="letter">Letter (8.5 x 11)</option>
+                                    <option value="legal">Legal (8.5 x 14)</option>
+                                    <option value="tabloid">Tabloid (11 x 17)</option>
+                                    <option value="half-letter">Half Letter (5.5 x 8.5)</option>
+                                    <option value="custom">Custom</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="binding_type" class="form-label">Binding Type</label>
+                                <select name="binding_type" id="binding_type" class="form-select">
+                                    <option value="saddle-stitch">Saddle Stitch</option>
+                                    <option value="perfect-bind">Perfect Binding</option>
+                                    <option value="coil">Coil Binding</option>
+                                    <option value="wire-o">Wire-O Binding</option>
+                                    <option value="staple">Staple</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <label for="cover_type" class="form-label">Cover Type</label>
+                                <select name="cover_type" id="cover_type" class="form-select">
+                                    <option value="text-weight">Text Weight</option>
+                                    <option value="cover-stock">Cover Stock</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="cover_print" class="form-label">Cover Printing</label>
+                                <select name="cover_print" id="cover_print" class="form-select">
+                                    <option value="bw">Black & White</option>
+                                    <option value="color">Color</option>
+                                    <option value="no-print">No Printing</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="cover_paper" class="form-label">Cover Paper</label>
+                                <select name="cover_paper" id="cover_paper" class="form-select">
+                                    {% for paper in papers %}
+                                        <option value="{{ paper.id }}" data-size="{{ paper.size }}" data-weight="{{ paper.weight }}" data-type="{{ paper.type }}" data-color="{{ paper.color }}" data-cost="{{ paper.cost_per_sheet }}">
+                                            {{ paper.name }} ({{ paper.size }}, {{ paper.weight }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <label for="inside_print" class="form-label">Inside Printing</label>
+                                <select name="inside_print" id="inside_print" class="form-select">
+                                    <option value="bw">Black & White</option>
+                                    <option value="color">Color</option>
+                                    <option value="mixed">Mixed B&W/Color</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="inside_paper" class="form-label">Inside Paper</label>
+                                <select name="inside_paper" id="inside_paper" class="form-select">
+                                    {% for paper in papers %}
+                                        <option value="{{ paper.id }}" data-size="{{ paper.size }}" data-weight="{{ paper.weight }}" data-type="{{ paper.type }}" data-color="{{ paper.color }}" data-cost="{{ paper.cost_per_sheet }}">
+                                            {{ paper.name }} ({{ paper.size }}, {{ paper.weight }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="self_cover" class="form-label">Self Cover?</label>
+                                <select name="self_cover" id="self_cover" class="form-select">
+                                    <option value="0">No</option>
+                                    <option value="1">Yes</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <h5>Finishing Options</h5>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered" id="finishing-options-table">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 5%">Add</th>
+                                            <th style="width: 35%">Option</th>
+                                            <th style="width: 15%">Base Price</th>
+                                            <th style="width: 15%">Per Piece</th>
+                                            <th style="width: 15%">Min Price</th>
+                                            <th style="width: 15%">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for option in finishing_options %}
+                                            <tr>
+                                                <td class="text-center">
+                                                    <input type="checkbox" class="finishing-option-checkbox" data-id="{{ option.id }}" data-name="{{ option.name }}" data-base-price="{{ option.base_price }}" data-per-piece-price="{{ option.per_piece_price }}" data-min-price="{{ option.min_price }}">
+                                                </td>
+                                                <td>{{ option.name }}</td>
+                                                <td>${{ "%.2f"|format(option.base_price) }}</td>
+                                                <td>${{ "%.2f"|format(option.per_piece_price) }}</td>
+                                                <td>${{ "%.2f"|format(option.min_price) }}</td>
+                                                <td class="finishing-option-total" data-id="{{ option.id }}">$0.00</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <td colspan="5" class="text-end"><strong>Total Finishing:</strong></td>
+                                            <td id="finishing-total">$0.00</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <h5>Price Calculation</h5>
+                            <div class="row g-2">
+                                <div class="col-md-3">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="material-cost" readonly>
+                                        <label for="material-cost">Material Cost</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="print-cost" readonly>
+                                        <label for="print-cost">Print Cost</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="finishing-cost" readonly>
+                                        <label for="finishing-cost">Finishing Cost</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="total-cost" readonly>
+                                        <label for="total-cost">Total Cost</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" id="cancel-quote-item-btn">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="save-quote-item-btn">Save Item</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Customer Details</h5>
+                </div>
+                <div class="card-body" id="customer-details">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Select a customer to view details.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('quotes_index') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Quotes
+                        </a>
+                        <a href="#" class="btn btn-outline-danger" id="cancel-quote-btn">
+                            <i class="bi bi-x-circle"></i> Cancel Quote
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals -->
+<div class="modal fade" id="savedPricesModal" tabindex="-1" aria-labelledby="savedPricesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="savedPricesModalLabel">Saved Prices</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" id="saved-price-search" placeholder="Search by name or description...">
+                    <button class="btn btn-outline-secondary" type="button" id="search-saved-prices-btn">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="saved-prices-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Retail Price</th>
+                                <th>Cost Price</th>
+                                <th>SKU</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for price in saved_prices %}
+                                <tr>
+                                    <td>{{ price.name }}</td>
+                                    <td>{{ price.description }}</td>
+                                    <td>${{ "%.2f"|format(price.retail_price) }}</td>
+                                    <td>${{ "%.2f"|format(price.cost_price) }}</td>
+                                    <td>{{ price.sku }}</td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-primary select-saved-price" 
+                                            data-id="{{ price.id }}" 
+                                            data-name="{{ price.name }}" 
+                                            data-description="{{ price.description }}" 
+                                            data-retail-price="{{ price.retail_price }}" 
+                                            data-cost-price="{{ price.cost_price }}" 
+                                            data-sku="{{ price.sku }}">
+                                            Select
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="customerPricesModal" tabindex="-1" aria-labelledby="customerPricesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="customerPricesModalLabel">Customer Prices</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info" id="select-customer-first-alert">
+                    <i class="bi bi-info-circle"></i> Please select a customer first to view their specific prices.
+                </div>
+                
+                <div id="customer-prices-container" style="display: none;">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover" id="customer-prices-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                    <th>Price</th>
+                                    <th>Valid From</th>
+                                    <th>Valid To</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <a href="#" class="btn btn-outline-primary" id="manage-customer-prices-btn" target="_blank">
+                            <i class="bi bi-gear"></i> Manage Customer Prices
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/print_calculator.js') }}"></script>
+<script>
+    $(document).ready(function() {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+        
+        // Initialize variables
+        let quoteItems = [];
+        let currentItemIndex = -1;
+        let printCalculator = new PrintCalculator();
+        
+        // Show quote items container
+        $("#quote-items-container").show();
+        $("#quote-item-form").hide();
+        
+        // Function to calculate total
+        function calculateTotal() {
+            let total = 0;
+            quoteItems.forEach(item => {
+                total += item.quantity * item.unit_price;
+            });
+            $("#quote-total").text("$" + total.toFixed(2));
+        }
+        
+        // Function to update the quote items table
+        function updateQuoteItemsTable() {
+            const tbody = $("#quote-items-table tbody");
+            tbody.empty();
+            
+            quoteItems.forEach((item, index) => {
+                const row = $("<tr></tr>");
+                row.append(`<td>${item.name}</td>`);
+                row.append(`<td>${item.quantity}</td>`);
+                row.append(`<td>$${item.unit_price.toFixed(2)}</td>`);
+                row.append(`<td>$${(item.quantity * item.unit_price).toFixed(2)}</td>`);
+                row.append(`
+                    <td>
+                        <button type="button" class="btn btn-sm btn-outline-primary edit-item" data-index="${index}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger delete-item" data-index="${index}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                `);
+                tbody.append(row);
+            });
+            
+            calculateTotal();
+        }
+        
+        // Initialize print calculator
+        printCalculator.init({
+            paperOptions: [...document.querySelectorAll('#paper_type option')].map(option => ({
+                id: option.value,
+                size: option.dataset.size,
+                weight: option.dataset.weight,
+                type: option.dataset.type,
+                color: option.dataset.color,
+                cost: parseFloat(option.dataset.cost)
+            })),
+            finishingOptions: [...document.querySelectorAll('.finishing-option-checkbox')].map(checkbox => ({
+                id: checkbox.dataset.id,
+                name: checkbox.dataset.name,
+                basePrice: parseFloat(checkbox.dataset.basePrice),
+                perPiecePrice: parseFloat(checkbox.dataset.perPiecePrice),
+                minPrice: parseFloat(checkbox.dataset.minPrice)
+            }))
+        });
+        
+        // Add quote item
+        $("#add-quote-item-btn").click(function() {
+            $("#quote-items-container").hide();
+            $("#quote-item-form").show();
+            currentItemIndex = -1;
+            
+            // Reset form
+            $("#quote-item-form")[0].reset();
+            $("#finishing-options-table .finishing-option-checkbox").prop("checked", false);
+            $(".finishing-option-total").text("$0.00");
+            $("#finishing-total").text("$0.00");
+            
+            // Set default values
+            $("#quantity").val(1);
+            $("#unit_price").val("0.00");
+            $("#total_price").val("$0.00");
+            $("#n_up").val(1);
+            
+            // Update calculation
+            updatePriceCalculation();
+        });
+        
+        // Cancel quote item
+        $("#cancel-quote-item-btn").click(function() {
+            $("#quote-item-form").hide();
+            $("#quote-items-container").show();
+        });
+        
+        // Save quote item
+        $("#save-quote-item-btn").click(function() {
+            // Validate form
+            if (!$("#name").val()) {
+                alert("Please enter an item name");
+                return;
+            }
+            
+            if (!$("#quantity").val() || parseInt($("#quantity").val()) < 1) {
+                alert("Please enter a valid quantity");
+                return;
+            }
+            
+            if (!$("#unit_price").val() || parseFloat($("#unit_price").val()) < 0) {
+                alert("Please enter a valid unit price");
+                return;
+            }
+            
+            // Get selected finishing options
+            const selectedFinishingOptions = [];
+            $("#finishing-options-table .finishing-option-checkbox:checked").each(function() {
+                selectedFinishingOptions.push({
+                    id: $(this).data("id"),
+                    name: $(this).data("name"),
+                    basePrice: parseFloat($(this).data("base-price")),
+                    perPiecePrice: parseFloat($(this).data("per-piece-price")),
+                    minPrice: parseFloat($(this).data("min-price"))
+                });
+            });
+            
+            // Collect form data
+            const itemData = {
+                name: $("#name").val(),
+                quantity: parseInt($("#quantity").val()),
+                unit_price: parseFloat($("#unit_price").val()),
+                description: $("#description").val(),
+                sku: $("#sku").val(),
+                width: $("#width").val() ? parseFloat($("#width").val()) : null,
+                height: $("#height").val() ? parseFloat($("#height").val()) : null,
+                pages: parseInt($("#pages").val() || 1),
+                n_up: parseInt($("#n_up").val() || 1),
+                is_booklet: $("#is_booklet").prop("checked"),
+                duplex: $("#duplex").prop("checked"),
+                print_type: $("#print_type").val(),
+                paper_size: $("#paper_size").val(),
+                paper_type: $("#paper_type").val(),
+                finishing_options: selectedFinishingOptions
+            };
+            
+            // Booklet specific fields
+            if (itemData.is_booklet) {
+                itemData.booklet_size = $("#booklet_size").val();
+                itemData.binding_type = $("#binding_type").val();
+                itemData.cover_type = $("#cover_type").val();
+                itemData.cover_print = $("#cover_print").val();
+                itemData.cover_paper = $("#cover_paper").val();
+                itemData.inside_print = $("#inside_print").val();
+                itemData.inside_paper = $("#inside_paper").val();
+                itemData.self_cover = $("#self_cover").val() === "1";
+            }
+            
+            // Add or update item
+            if (currentItemIndex === -1) {
+                quoteItems.push(itemData);
+            } else {
+                quoteItems[currentItemIndex] = itemData;
+            }
+            
+            // Update UI
+            updateQuoteItemsTable();
+            $("#quote-item-form").hide();
+            $("#quote-items-container").show();
+        });
+        
+        // Edit quote item
+        $(document).on("click", ".edit-item", function() {
+            const index = $(this).data("index");
+            const item = quoteItems[index];
+            currentItemIndex = index;
+            
+            // Populate form
+            $("#name").val(item.name);
+            $("#quantity").val(item.quantity);
+            $("#unit_price").val(item.unit_price.toFixed(2));
+            $("#description").val(item.description);
+            $("#sku").val(item.sku);
+            $("#width").val(item.width);
+            $("#height").val(item.height);
+            $("#pages").val(item.pages || 1);
+            $("#n_up").val(item.n_up || 1);
+            $("#is_booklet").prop("checked", item.is_booklet);
+            $("#duplex").prop("checked", item.duplex);
+            $("#print_type").val(item.print_type);
+            $("#paper_size").val(item.paper_size);
+            $("#paper_type").val(item.paper_type);
+            
+            // Reset finishing options
+            $("#finishing-options-table .finishing-option-checkbox").prop("checked", false);
+            
+            // Set selected finishing options
+            if (item.finishing_options && item.finishing_options.length) {
+                item.finishing_options.forEach(option => {
+                    $(`#finishing-options-table .finishing-option-checkbox[data-id="${option.id}"]`).prop("checked", true);
+                });
+            }
+            
+            // Toggle booklet options
+            if (item.is_booklet) {
+                $("#regular-print-options").hide();
+                $("#booklet-options").show();
+                
+                // Set booklet fields
+                $("#booklet_size").val(item.booklet_size);
+                $("#binding_type").val(item.binding_type);
+                $("#cover_type").val(item.cover_type);
+                $("#cover_print").val(item.cover_print);
+                $("#cover_paper").val(item.cover_paper);
+                $("#inside_print").val(item.inside_print);
+                $("#inside_paper").val(item.inside_paper);
+                $("#self_cover").val(item.self_cover ? "1" : "0");
+            } else {
+                $("#booklet-options").hide();
+                $("#regular-print-options").show();
+            }
+            
+            // Update calculation
+            updatePriceCalculation();
+            updateTotalPrice();
+            
+            // Show form
+            $("#quote-items-container").hide();
+            $("#quote-item-form").show();
+        });
+        
+        // Delete quote item
+        $(document).on("click", ".delete-item", function() {
+            if (confirm("Are you sure you want to delete this item?")) {
+                const index = $(this).data("index");
+                quoteItems.splice(index, 1);
+                updateQuoteItemsTable();
+            }
+        });
+        
+        // Update total price when quantity or unit price changes
+        $("#quantity, #unit_price").on("input", function() {
+            updateTotalPrice();
+        });
+        
+        function updateTotalPrice() {
+            const quantity = parseInt($("#quantity").val()) || 0;
+            const unitPrice = parseFloat($("#unit_price").val()) || 0;
+            const totalPrice = quantity * unitPrice;
+            $("#total_price").val("$" + totalPrice.toFixed(2));
+        }
+        
+        // Toggle booklet options
+        $("#is_booklet").change(function() {
+            if ($(this).prop("checked")) {
+                $("#regular-print-options").hide();
+                $("#booklet-options").show();
+            } else {
+                $("#booklet-options").hide();
+                $("#regular-print-options").show();
+            }
+            updatePriceCalculation();
+        });
+        
+        // Update finishing option calculations
+        $(".finishing-option-checkbox").change(function() {
+            updateFinishingOptionTotals();
+            updatePriceCalculation();
+        });
+        
+        $("#quantity, #pages, #n_up, #duplex, #print_type, #paper_type, #cover_paper, #inside_paper, #self_cover").change(function() {
+            updateFinishingOptionTotals();
+            updatePriceCalculation();
+        });
+        
+        function updateFinishingOptionTotals() {
+            let finishingTotal = 0;
+            
+            $("#finishing-options-table .finishing-option-checkbox:checked").each(function() {
+                const basePrice = parseFloat($(this).data("base-price"));
+                const perPiecePrice = parseFloat($(this).data("per-piece-price"));
+                const minPrice = parseFloat($(this).data("min-price"));
+                const id = $(this).data("id");
+                
+                const quantity = parseInt($("#quantity").val()) || 1;
+                const calculatedPrice = basePrice + (perPiecePrice * quantity);
+                const finalPrice = Math.max(calculatedPrice, minPrice);
+                
+                $(`#finishing-options-table .finishing-option-total[data-id="${id}"]`).text("$" + finalPrice.toFixed(2));
+                finishingTotal += finalPrice;
+            });
+            
+            $("#finishing-total").text("$" + finishingTotal.toFixed(2));
+            $("#finishing-cost").val("$" + finishingTotal.toFixed(2));
+        }
+        
+        function updatePriceCalculation() {
+            const isBooklet = $("#is_booklet").prop("checked");
+            const quantity = parseInt($("#quantity").val()) || 1;
+            const pages = parseInt($("#pages").val()) || 1;
+            const isDuplex = $("#duplex").prop("checked");
+            const nUp = parseInt($("#n_up").val()) || 1;
+            
+            let paperCost = 0;
+            let printCost = 0;
+            
+            if (isBooklet) {
+                // Booklet calculation logic
+                const selfCover = $("#self_cover").val() === "1";
+                const coverPaperId = $("#cover_paper").val();
+                const insidePaperId = $("#inside_paper").val();
+                
+                // Calculate number of sheets needed
+                const insideSheets = Math.ceil(pages / (4 * nUp)); // 4 pages per sheet in a booklet
+                const coverSheets = selfCover ? 0 : 1;
+                
+                // Get paper costs
+                const coverPaperOption = printCalculator.getPaperOption(coverPaperId);
+                const insidePaperOption = printCalculator.getPaperOption(insidePaperId);
+                
+                if (coverPaperOption && !selfCover) {
+                    paperCost += coverPaperOption.cost * coverSheets * quantity;
+                }
+                
+                if (insidePaperOption) {
+                    paperCost += insidePaperOption.cost * insideSheets * quantity;
+                }
+                
+                // Print costs - simplified calculation
+                const coverPrintType = $("#cover_print").val();
+                const insidePrintType = $("#inside_print").val();
+                
+                // Basic print cost estimate (this would be refined in a real implementation)
+                if (coverPrintType === "color" && !selfCover) {
+                    printCost += 0.50 * coverSheets * quantity; // Example cost for color printing
+                } else if (coverPrintType === "bw" && !selfCover) {
+                    printCost += 0.10 * coverSheets * quantity; // Example cost for B&W printing
+                }
+                
+                if (insidePrintType === "color") {
+                    printCost += 0.40 * insideSheets * quantity * 2; // Both sides
+                } else if (insidePrintType === "bw") {
+                    printCost += 0.08 * insideSheets * quantity * 2; // Both sides
+                } else if (insidePrintType === "mixed") {
+                    printCost += 0.25 * insideSheets * quantity * 2; // Average cost
+                }
+            } else {
+                // Regular print job calculation
+                const paperId = $("#paper_type").val();
+                const printType = $("#print_type").val();
+                
+                // Adjust pages for n-up printing
+                const adjustedPages = Math.ceil(pages / nUp);
+                
+                // Calculate sheets needed
+                const sheets = isDuplex ? Math.ceil(adjustedPages / 2) : adjustedPages;
+                
+                // Get paper cost
+                const paperOption = printCalculator.getPaperOption(paperId);
+                if (paperOption) {
+                    paperCost = paperOption.cost * sheets * quantity;
+                }
+                
+                // Print costs - simplified calculation
+                if (printType === "color") {
+                    printCost = 0.40 * adjustedPages * quantity; // Example cost for color printing
+                } else if (printType === "bw") {
+                    printCost = 0.08 * adjustedPages * quantity; // Example cost for B&W printing
+                } else if (printType === "mixed") {
+                    printCost = 0.25 * adjustedPages * quantity; // Average cost
+                }
+            }
+            
+            // Get finishing costs
+            let finishingCost = 0;
+            $("#finishing-options-table .finishing-option-checkbox:checked").each(function() {
+                const basePrice = parseFloat($(this).data("base-price"));
+                const perPiecePrice = parseFloat($(this).data("per-piece-price"));
+                const minPrice = parseFloat($(this).data("min-price"));
+                
+                const calculatedPrice = basePrice + (perPiecePrice * quantity);
+                finishingCost += Math.max(calculatedPrice, minPrice);
+            });
+            
+            // Update display
+            $("#material-cost").val("$" + paperCost.toFixed(2));
+            $("#print-cost").val("$" + printCost.toFixed(2));
+            $("#finishing-cost").val("$" + finishingCost.toFixed(2));
+            
+            const totalCost = paperCost + printCost + finishingCost;
+            $("#total-cost").val("$" + totalCost.toFixed(2));
+            
+            // Suggest unit price (with markup)
+            const markup = 1.3; // 30% markup
+            const suggestedPrice = totalCost * markup / quantity;
+            $("#unit_price").val(suggestedPrice.toFixed(2));
+            updateTotalPrice();
+        }
+        
+        // Customer selection
+        $("#customer_id").change(function() {
+            const customerId = $(this).val();
+            if (customerId) {
+                $.ajax({
+                    url: `/customers/${customerId}/details`,
+                    method: "GET",
+                    success: function(data) {
+                        let html = `
+                            <h6>${data.name}</h6>
+                            <p class="mb-1"><i class="bi bi-envelope"></i> ${data.email || 'No email'}</p>
+                            <p class="mb-1"><i class="bi bi-telephone"></i> ${data.phone || 'No phone'}</p>
+                        `;
+                        
+                        if (data.discount_percentage > 0) {
+                            html += `<p class="mb-1"><i class="bi bi-percent"></i> Discount: <span class="badge bg-success">${data.discount_percentage}%</span></p>`;
+                        }
+                        
+                        $("#customer-details").html(html);
+                        
+                        // Update customer prices modal
+                        $("#select-customer-first-alert").hide();
+                        $("#customer-prices-container").show();
+                        $("#manage-customer-prices-btn").attr("href", `/customer-prices/${customerId}`);
+                        loadCustomerPrices(customerId);
+                    },
+                    error: function() {
+                        $("#customer-details").html('<div class="alert alert-danger">Error loading customer details</div>');
+                    }
+                });
+            } else {
+                $("#customer-details").html('<div class="alert alert-info"><i class="bi bi-info-circle"></i> Select a customer to view details.</div>');
+                $("#select-customer-first-alert").show();
+                $("#customer-prices-container").hide();
+            }
+        });
+        
+        // Refresh customers list
+        $("#refresh-customers").click(function(e) {
+            e.preventDefault();
+            $.ajax({
+                url: "/customers/list",
+                method: "GET",
+                success: function(data) {
+                    let options = '<option value="">Select a customer</option>';
+                    data.forEach(customer => {
+                        const discountText = customer.discount_percentage > 0 ? ` (${customer.discount_percentage}% discount)` : '';
+                        options += `<option value="${customer.id}">${customer.name}${discountText}</option>`;
+                    });
+                    $("#customer_id").html(options);
+                }
+            });
+        });
+        
+        // Show saved prices modal
+        $("#show-saved-prices").click(function(e) {
+            e.preventDefault();
+            $("#savedPricesModal").modal("show");
+        });
+        
+        // Select saved price
+        $(".select-saved-price").click(function() {
+            const name = $(this).data("name");
+            const description = $(this).data("description");
+            const retailPrice = $(this).data("retail-price");
+            const costPrice = $(this).data("cost-price");
+            const sku = $(this).data("sku");
+            
+            $("#name").val(name);
+            $("#description").val(description);
+            $("#unit_price").val(retailPrice.toFixed(2));
+            $("#sku").val(sku);
+            
+            updateTotalPrice();
+            $("#savedPricesModal").modal("hide");
+        });
+        
+        // Show customer prices modal
+        $("#show-customer-prices").click(function(e) {
+            e.preventDefault();
+            const customerId = $("#customer_id").val();
+            
+            if (customerId) {
+                $("#select-customer-first-alert").hide();
+                $("#customer-prices-container").show();
+                $("#customerPricesModal").modal("show");
+            } else {
+                $("#select-customer-first-alert").show();
+                $("#customer-prices-container").hide();
+                $("#customerPricesModal").modal("show");
+            }
+        });
+        
+        // Load customer prices
+        function loadCustomerPrices(customerId) {
+            $.ajax({
+                url: `/customer-prices/${customerId}/list`,
+                method: "GET",
+                success: function(data) {
+                    const tbody = $("#customer-prices-table tbody");
+                    tbody.empty();
+                    
+                    if (data.length === 0) {
+                        tbody.html(`<tr><td colspan="6" class="text-center">No custom prices found for this customer</td></tr>`);
+                        return;
+                    }
+                    
+                    data.forEach(price => {
+                        const validFrom = new Date(price.valid_from).toLocaleDateString();
+                        const validTo = price.valid_to ? new Date(price.valid_to).toLocaleDateString() : 'No expiration';
+                        
+                        const row = $("<tr></tr>");
+                        row.append(`<td>${price.name}</td>`);
+                        row.append(`<td>${price.description || ''}</td>`);
+                        row.append(`<td>$${price.price.toFixed(2)}</td>`);
+                        row.append(`<td>${validFrom}</td>`);
+                        row.append(`<td>${validTo}</td>`);
+                        row.append(`
+                            <td>
+                                <button type="button" class="btn btn-sm btn-primary select-customer-price" 
+                                    data-name="${price.name}" 
+                                    data-description="${price.description || ''}" 
+                                    data-price="${price.price}">
+                                    Select
+                                </button>
+                            </td>
+                        `);
+                        tbody.append(row);
+                    });
+                    
+                    // Handle selection
+                    $(".select-customer-price").click(function() {
+                        const name = $(this).data("name");
+                        const description = $(this).data("description");
+                        const price = $(this).data("price");
+                        
+                        $("#name").val(name);
+                        $("#description").val(description);
+                        $("#unit_price").val(price.toFixed(2));
+                        
+                        updateTotalPrice();
+                        $("#customerPricesModal").modal("hide");
+                    });
+                },
+                error: function() {
+                    $("#customer-prices-table tbody").html(`<tr><td colspan="6" class="text-center text-danger">Error loading customer prices</td></tr>`);
+                }
+            });
+        }
+        
+        // Cancel quote
+        $("#cancel-quote-btn").click(function(e) {
+            e.preventDefault();
+            if (confirm("Are you sure you want to cancel this quote? All unsaved changes will be lost.")) {
+                window.location.href = "{{ url_for('quotes_index') }}";
+            }
+        });
+    });
+</script>
+{% endblock %}

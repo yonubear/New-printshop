@@ -1,0 +1,193 @@
+{% extends "layout.html" %}
+
+{% block title %}Customer Pricing - Print Order Management System{% endblock %}
+
+{% from "macros.html" import csrf_token %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Customer-Specific Pricing</h1>
+    <div>
+        <a href="{{ url_for('customer_prices_create') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i> Add Custom Price
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-white py-3">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h5 class="mb-md-0">All Customer Pricing</h5>
+            </div>
+            <div class="col-md-6">
+                <div class="input-group">
+                    <input type="text" id="priceSearchInput" class="form-control" placeholder="Search prices...">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="customer-price-table">
+                <thead class="table-light">
+                    <tr>
+                        <th>Customer</th>
+                        <th>Item</th>
+                        <th>Type</th>
+                        <th>Regular Price</th>
+                        <th>Custom Price</th>
+                        <th>Discount</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if customer_prices %}
+                        {% for price in customer_prices %}
+                            <tr class="price-row">
+                                <td>
+                                    <a href="{{ url_for('customer_prices_by_customer', customer_id=price.customer.id) }}">
+                                        {{ price.customer.name }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">{{ price.name }}</div>
+                                    <div class="small text-muted">{{ price.description }}</div>
+                                </td>
+                                <td>
+                                    {% if price.saved_price_id %}
+                                        <span class="badge bg-primary">Product/Service</span>
+                                    {% elif price.paper_option_id %}
+                                        <span class="badge bg-success">Paper</span>
+                                    {% elif price.finishing_option_id %}
+                                        <span class="badge bg-info">Finishing</span>
+                                    {% elif price.print_pricing_id %}
+                                        <span class="badge bg-warning">Print Pricing</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Custom</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if price.saved_price_id %}
+                                        ${{ price.saved_price.price|round(2) }}
+                                    {% elif price.paper_option_id %}
+                                        ${{ price.paper_option.price_per_sheet|round(2) }}
+                                    {% elif price.finishing_option_id %}
+                                        ${{ price.finishing_option.base_price|round(2) }}
+                                    {% elif price.print_pricing_id %}
+                                        ${{ price.print_pricing.price_per_side|round(2) }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td>${{ price.price|round(2) }}</td>
+                                <td>
+                                    {% if price.discount_value > 0 %}
+                                        {% if price.discount_type == 'percentage' %}
+                                            {{ price.discount_value|round(2) }}%
+                                        {% else %}
+                                            ${{ price.discount_value|round(2) }}
+                                        {% endif %}
+                                    {% else %}
+                                        None
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% set valid_until_passed = price.valid_until and (price.valid_until < now()) %}
+                                    {% if price.is_active and not valid_until_passed %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% elif not price.is_active %}
+                                        <span class="badge bg-danger">Inactive</span>
+                                    {% elif valid_until_passed %}
+                                        <span class="badge bg-warning">Expired</span>
+                                    {% endif %}
+                                    
+                                    {% if price.valid_until %}
+                                        <div class="small text-muted">
+                                            Expires: {{ price.valid_until.strftime('%Y-%m-%d') }}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('customer_prices_edit', id=price.id) }}" class="btn btn-outline-primary">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteCustomerPriceModal{{ price.id }}">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Delete Confirmation Modal -->
+                                    <div class="modal fade" id="deleteCustomerPriceModal{{ price.id }}" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Confirm Delete</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p>Are you sure you want to delete the custom price <strong>{{ price.name }}</strong> for customer <strong>{{ price.customer.name }}</strong>?</p>
+                                                    <p class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i> This action cannot be undone.</p>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                    <form action="{{ url_for('customer_prices_delete', id=price.id) }}" method="POST">
+                                                        {{ csrf_token() }}
+                                                        <button type="submit" class="btn btn-danger">Delete</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4">
+                                <div class="text-muted">
+                                    <i class="bi bi-info-circle-fill me-1"></i> No customer-specific prices found
+                                </div>
+                                <div class="mt-2">
+                                    <a href="{{ url_for('customer_prices_create') }}" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-plus-circle me-1"></i> Add Custom Price
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Search functionality
+        const searchInput = document.getElementById('priceSearchInput');
+        const priceRows = document.querySelectorAll('.price-row');
+        
+        searchInput.addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+            
+            priceRows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

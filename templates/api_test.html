@@ -1,0 +1,168 @@
+{% extends "layout.html" %}
+
+{% block title %}API Test{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1>API Diagnostic Tool</h1>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Finishing Categories API Test</h5>
+                </div>
+                <div class="card-body">
+                    <div id="category-results" class="mb-3">
+                        <p>Loading categories...</p>
+                    </div>
+                    <button id="test-categories" class="btn btn-primary">Test Finishing Categories API</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Finishing Options API Test</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="category-select" class="form-label">Select Category</label>
+                        <select id="category-select" class="form-select">
+                            <option value="">Loading categories...</option>
+                        </select>
+                    </div>
+                    <div id="options-results" class="mb-3">
+                        <p>Select a category and click Test</p>
+                    </div>
+                    <button id="test-options" class="btn btn-success">Test Finishing Options API</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const categoryResults = document.getElementById('category-results');
+    const optionsResults = document.getElementById('options-results');
+    const categorySelect = document.getElementById('category-select');
+    const testCategoriesBtn = document.getElementById('test-categories');
+    const testOptionsBtn = document.getElementById('test-options');
+    
+    // Initial categories test on page load
+    fetchCategories();
+    
+    // Button event listeners
+    testCategoriesBtn.addEventListener('click', fetchCategories);
+    testOptionsBtn.addEventListener('click', fetchOptions);
+    
+    function fetchCategories() {
+        categoryResults.innerHTML = '<p>Loading categories...</p>';
+        
+        fetch('/api/finishing-categories')
+            .then(response => {
+                categoryResults.innerHTML += `<p>Response status: ${response.status}</p>`;
+                return response.json();
+            })
+            .then(data => {
+                console.log("Categories data:", data);
+                if (data && data.length > 0) {
+                    categoryResults.innerHTML = `
+                        <div class="alert alert-success">
+                            Successfully loaded ${data.length} categories!
+                        </div>
+                        <ul class="list-group">
+                            ${data.map(cat => `<li class="list-group-item">${cat}</li>`).join('')}
+                        </ul>
+                    `;
+                    
+                    // Also update the category select dropdown
+                    categorySelect.innerHTML = '';
+                    data.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat;
+                        option.textContent = cat;
+                        categorySelect.appendChild(option);
+                    });
+                } else {
+                    categoryResults.innerHTML = `
+                        <div class="alert alert-warning">
+                            API returned empty categories list
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error("Error fetching categories:", error);
+                categoryResults.innerHTML = `
+                    <div class="alert alert-danger">
+                        Error: ${error.message}
+                    </div>
+                `;
+            });
+    }
+    
+    function fetchOptions() {
+        const category = categorySelect.value;
+        if (!category) {
+            optionsResults.innerHTML = '<div class="alert alert-warning">Please select a category first</div>';
+            return;
+        }
+        
+        optionsResults.innerHTML = `<p>Loading options for category: ${category}...</p>`;
+        
+        fetch(`/api/finishing-options?category=${encodeURIComponent(category)}`)
+            .then(response => {
+                optionsResults.innerHTML += `<p>Response status: ${response.status}</p>`;
+                return response.json();
+            })
+            .then(data => {
+                console.log(`Options data for ${category}:`, data);
+                if (data && data.length > 0) {
+                    optionsResults.innerHTML = `
+                        <div class="alert alert-success">
+                            Successfully loaded ${data.length} options for ${category}!
+                        </div>
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Base Price</th>
+                                    <th>Per Piece</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.map(opt => `
+                                    <tr>
+                                        <td>${opt.id}</td>
+                                        <td>${opt.name}</td>
+                                        <td>$${opt.base_price.toFixed(2)}</td>
+                                        <td>$${opt.price_per_piece.toFixed(2)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                } else {
+                    optionsResults.innerHTML = `
+                        <div class="alert alert-warning">
+                            No options found for category: ${category}
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error(`Error fetching options for ${category}:`, error);
+                optionsResults.innerHTML = `
+                    <div class="alert alert-danger">
+                        Error: ${error.message}
+                    </div>
+                `;
+            });
+    }
+});
+</script>
+{% endblock %}

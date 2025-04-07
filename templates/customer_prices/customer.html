@@ -1,0 +1,252 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ customer.name }} - Custom Pricing - Print Order Management System{% endblock %}
+
+{% from "macros.html" import csrf_token %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Custom Pricing for {{ customer.name }}</h1>
+        <p class="text-muted">
+            {% if customer.company %}
+                {{ customer.company }}
+            {% elif customer.email %}
+                {{ customer.email }}
+            {% endif %}
+        </p>
+    </div>
+    <div>
+        <a href="{{ url_for('customer_prices_create') }}" class="btn btn-primary me-2">
+            <i class="bi bi-plus-circle me-1"></i> Add Custom Price
+        </a>
+        <a href="{{ url_for('customer_prices_index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back to All Prices
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0">Customer Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="small text-muted d-block">Name</label>
+                    <div class="fs-5 fw-semibold">{{ customer.name }}</div>
+                </div>
+                
+                {% if customer.company %}
+                <div class="mb-3">
+                    <label class="small text-muted d-block">Company</label>
+                    <div>{{ customer.company }}</div>
+                </div>
+                {% endif %}
+                
+                <div class="mb-3">
+                    <label class="small text-muted d-block">Contact Information</label>
+                    <div>
+                        <i class="bi bi-envelope me-1"></i> {{ customer.email }}
+                    </div>
+                    {% if customer.phone %}
+                    <div>
+                        <i class="bi bi-telephone me-1"></i> {{ customer.phone }}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                {% if customer.address %}
+                <div class="mb-3">
+                    <label class="small text-muted d-block">Address</label>
+                    <div class="mb-0">{{ customer.address|nl2br }}</div>
+                </div>
+                {% endif %}
+                
+                <div class="d-grid gap-2 mt-3">
+                    <a href="{{ url_for('customers_edit', id=customer.id) }}" class="btn btn-outline-primary">
+                        <i class="bi bi-person me-1"></i> Edit Customer Profile
+                    </a>
+                    <a href="{{ url_for('orders_index') }}?customer_id={{ customer.id }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-file-earmark-text me-1"></i> View Customer Orders
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-white py-3">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h5 class="mb-0">Custom Pricing</h5>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <input type="text" id="priceSearchInput" class="form-control" placeholder="Search prices...">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Regular Price</th>
+                                <th>Custom Price</th>
+                                <th>Savings</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if customer_prices %}
+                                {% for price in customer_prices %}
+                                    <tr class="price-row">
+                                        <td>
+                                            <div class="fw-semibold">{{ price.name }}</div>
+                                            <div class="small text-muted">{{ price.description }}</div>
+                                        </td>
+                                        <td>
+                                            {% if price.saved_price_id %}
+                                                <span class="badge bg-primary">Product/Service</span>
+                                            {% elif price.paper_option_id %}
+                                                <span class="badge bg-success">Paper</span>
+                                            {% elif price.finishing_option_id %}
+                                                <span class="badge bg-info">Finishing</span>
+                                            {% elif price.print_pricing_id %}
+                                                <span class="badge bg-warning">Print Pricing</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Custom</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if price.saved_price_id %}
+                                                ${{ price.saved_price.price|round(2) }}
+                                            {% elif price.paper_option_id %}
+                                                ${{ price.paper_option.price_per_sheet|round(2) }}
+                                            {% elif price.finishing_option_id %}
+                                                ${{ price.finishing_option.base_price|round(2) }}
+                                            {% elif price.print_pricing_id %}
+                                                ${{ price.print_pricing.price_per_side|round(2) }}
+                                            {% else %}
+                                                N/A
+                                            {% endif %}
+                                        </td>
+                                        <td>${{ price.price|round(2) }}</td>
+                                        <td>
+                                            {% if price.discount_value > 0 %}
+                                                {% if price.discount_type == 'percentage' %}
+                                                    <span class="text-success">{{ price.discount_value|round(2) }}% off</span>
+                                                {% else %}
+                                                    <span class="text-success">${{ price.discount_value|round(2) }} off</span>
+                                                {% endif %}
+                                            {% else %}
+                                                —
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% set valid_until_passed = price.valid_until and (price.valid_until < now()) %}
+                                            {% if price.is_active and not valid_until_passed %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% elif not price.is_active %}
+                                                <span class="badge bg-danger">Inactive</span>
+                                            {% elif valid_until_passed %}
+                                                <span class="badge bg-warning">Expired</span>
+                                            {% endif %}
+                                            
+                                            {% if price.valid_until %}
+                                                <div class="small text-muted">
+                                                    Expires: {{ price.valid_until.strftime('%Y-%m-%d') }}
+                                                </div>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('customer_prices_edit', id=price.id) }}" class="btn btn-outline-primary">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteCustomerPriceModal{{ price.id }}">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                            
+                                            <!-- Delete Confirmation Modal -->
+                                            <div class="modal fade" id="deleteCustomerPriceModal{{ price.id }}" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title">Confirm Delete</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <p>Are you sure you want to delete the custom price <strong>{{ price.name }}</strong>?</p>
+                                                            <p class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i> This action cannot be undone.</p>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                            <form action="{{ url_for('customer_prices_delete', id=price.id) }}" method="POST">
+                                                                {{ csrf_token() }}
+                                                                <button type="submit" class="btn btn-danger">Delete</button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-4">
+                                        <div class="text-muted">
+                                            <i class="bi bi-info-circle-fill me-1"></i> No custom prices found for this customer
+                                        </div>
+                                        <div class="mt-2">
+                                            <a href="{{ url_for('customer_prices_create') }}" class="btn btn-sm btn-primary">
+                                                <i class="bi bi-plus-circle me-1"></i> Add Custom Price
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Search functionality
+        const searchInput = document.getElementById('priceSearchInput');
+        const priceRows = document.querySelectorAll('.price-row');
+        
+        searchInput.addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+            
+            priceRows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

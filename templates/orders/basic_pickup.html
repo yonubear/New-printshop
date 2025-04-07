@@ -1,0 +1,343 @@
+{% extends "layout.html" %}
+
+{% block title %}Record Order Pickup - {{ order.order_number }}{% endblock %}
+
+{% block styles %}
+<style>
+    #signature-canvas {
+        border: 1px solid #000;
+        width: 100%;
+        height: 200px;
+        background-color: #fff;
+    }
+    .method-selector {
+        margin-bottom: 20px;
+    }
+    .method-option {
+        padding: 10px;
+        border: 1px solid #ccc;
+        cursor: pointer;
+        text-align: center;
+    }
+    .method-option.active {
+        background-color: #e9f5fc;
+        border-color: #0d6efd;
+    }
+    .method-content {
+        display: none;
+        margin-bottom: 20px;
+    }
+    #signature-method {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Record Pickup: {{ order.order_number }}</h1>
+    <div>
+        <a href="{{ url_for('orders_view', id=order.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back to Order
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Order Pickup Information</h5>
+    </div>
+    
+    <div class="card-body">
+        <form id="pickup-form" action="{{ url_for('basic_pickup.process_basic_pickup', order_id=order.id) }}" method="POST">
+            {{ form.hidden_tag() }}
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="pickup_by" class="form-label">Picked Up By</label>
+                    <input type="text" class="form-control" id="pickup_by" name="pickup_by" required>
+                    <div class="form-text">Name of person picking up the order</div>
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-12">
+                    <label class="form-label d-block">Confirmation Method</label>
+                    <div class="row method-selector">
+                        <div class="col-6">
+                            <div class="method-option active" data-method="signature">
+                                <i class="bi bi-pen"></i>
+                                <div>Digital Signature</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="method-option" data-method="photo">
+                                <i class="bi bi-camera"></i>
+                                <div>Photo Capture</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="signature-method" class="method-content">
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <label class="form-label">Signature</label>
+                        <canvas id="signature-canvas"></canvas>
+                        <input type="hidden" name="signature-data" id="signature-data">
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="clear-signature">Clear</button>
+                        </div>
+                        <div class="form-text">Please sign above to confirm pickup of this order</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="photo-method" class="method-content">
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <label class="form-label">Photo Confirmation</label>
+                        <div>
+                            <video id="camera-video" style="width: 100%; height: 200px; display: block; background: #000;" autoplay></video>
+                            <img id="captured-image" style="width: 100%; height: 200px; display: none; background: #fff;">
+                        </div>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-primary" id="take-photo">Take Photo</button>
+                            <button type="button" class="btn btn-secondary" id="retake-photo" style="display: none;">Retake Photo</button>
+                        </div>
+                        <input type="hidden" name="photo-data" id="photo-data">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="print-receipt" name="print_receipt" value="1">
+                <label class="form-check-label" for="print-receipt">
+                    Print receipt with signature
+                </label>
+            </div>
+            
+            <div>
+                <a href="{{ url_for('orders_view', id=order.id) }}" class="btn btn-outline-secondary me-2">Cancel</a>
+                <button type="submit" class="btn btn-primary">Record Pickup</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Basic signature/photo page loaded');
+        
+        // Signature elements
+        const canvas = document.getElementById('signature-canvas');
+        const signatureData = document.getElementById('signature-data');
+        const clearButton = document.getElementById('clear-signature');
+        
+        // Photo elements
+        const video = document.getElementById('camera-video');
+        const capturedImage = document.getElementById('captured-image');
+        const takePhotoBtn = document.getElementById('take-photo');
+        const retakePhotoBtn = document.getElementById('retake-photo');
+        const photoData = document.getElementById('photo-data');
+        
+        // Method selection elements
+        const methodOptions = document.querySelectorAll('.method-option');
+        const methodContents = document.querySelectorAll('.method-content');
+        
+        // Form element
+        const form = document.getElementById('pickup-form');
+        
+        // Set up canvas for signature
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        
+        // Set canvas dimensions based on its container
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+        
+        // Set white background
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Drawing styles
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#000';
+        
+        // Signature events
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+        
+        // Touch events for mobile
+        canvas.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        });
+        
+        canvas.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        });
+        
+        canvas.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            const mouseEvent = new MouseEvent('mouseup', {});
+            canvas.dispatchEvent(mouseEvent);
+        });
+        
+        // Clear signature button
+        if (clearButton) {
+            clearButton.addEventListener('click', function() {
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            });
+        }
+        
+        // Drawing functions
+        function startDrawing(e) {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            ctx.beginPath();
+            ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        }
+        
+        function draw(e) {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+            ctx.stroke();
+        }
+        
+        function stopDrawing() {
+            isDrawing = false;
+        }
+        
+        // Camera setup
+        let stream = null;
+        
+        function setupCamera() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                    .then(function(mediaStream) {
+                        stream = mediaStream;
+                        video.srcObject = mediaStream;
+                    })
+                    .catch(function(error) {
+                        console.error('Error accessing camera:', error);
+                        alert('Could not access camera. Please ensure you have given camera permission to this site.');
+                    });
+            } else {
+                alert('Your browser does not support camera access.');
+            }
+        }
+        
+        // Take photo button
+        if (takePhotoBtn) {
+            takePhotoBtn.addEventListener('click', function() {
+                if (!video.srcObject) {
+                    alert('Camera not available');
+                    return;
+                }
+                
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = video.videoWidth;
+                tempCanvas.height = video.videoHeight;
+                
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+                
+                const imgData = tempCanvas.toDataURL('image/png');
+                capturedImage.src = imgData;
+                photoData.value = imgData;
+                
+                video.style.display = 'none';
+                capturedImage.style.display = 'block';
+                takePhotoBtn.style.display = 'none';
+                retakePhotoBtn.style.display = 'inline-block';
+            });
+        }
+        
+        // Retake photo button
+        if (retakePhotoBtn) {
+            retakePhotoBtn.addEventListener('click', function() {
+                video.style.display = 'block';
+                capturedImage.style.display = 'none';
+                takePhotoBtn.style.display = 'inline-block';
+                retakePhotoBtn.style.display = 'none';
+                photoData.value = '';
+            });
+        }
+        
+        // Method switching
+        methodOptions.forEach(function(option) {
+            option.addEventListener('click', function() {
+                // Update active class
+                methodOptions.forEach(opt => opt.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Hide all method contents
+                methodContents.forEach(content => content.style.display = 'none');
+                
+                // Show selected method
+                const method = this.getAttribute('data-method');
+                document.getElementById(method + '-method').style.display = 'block';
+                
+                // Initialize camera if needed
+                if (method === 'photo' && !stream) {
+                    setupCamera();
+                }
+            });
+        });
+        
+        // Form submission
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const activeMethod = document.querySelector('.method-option.active').getAttribute('data-method');
+            
+            if (activeMethod === 'signature') {
+                // Get signature data
+                const sigData = canvas.toDataURL('image/png');
+                signatureData.value = sigData;
+            } else if (activeMethod === 'photo') {
+                // Use photo data
+                if (!photoData.value) {
+                    alert('Please take a photo before submitting');
+                    return;
+                }
+                
+                // Copy photo data to signature data for processing
+                signatureData.value = photoData.value;
+            }
+            
+            // Submit the form
+            this.submit();
+        });
+        
+        // Clean up camera when leaving page
+        window.addEventListener('beforeunload', function() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
+    });
+</script>
+{% endblock %}

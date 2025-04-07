@@ -1,0 +1,804 @@
+{% extends "layout.html" %}
+
+{% block title %}Create New Quote - Print Order Management System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .custom-size-fields {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Create New Quote</h1>
+    <div>
+        <a href="{{ url_for('quotes_index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back to Quotes
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Quote Details -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Quote Details</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('quotes_create') }}" method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        <label for="customer_id" class="form-label">Customer *</label>
+                        <div class="input-group">
+                            <select name="customer_id" id="customer_id" class="form-select" required>
+                                <option value="">-- Select Customer --</option>
+                                {% for customer in customers %}
+                                    <option value="{{ customer.id }}">
+                                        {{ customer.name }} {% if customer.company %}({{ customer.company }}){% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" id="viewCustomPrices" class="btn btn-outline-success" 
+                                    data-bs-toggle="tooltip" title="View Custom Prices" disabled>
+                                <i class="bi bi-tag-fill"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="quote_number" class="form-label">Quote Number</label>
+                        <div class="input-group">
+                            <input type="text" name="quote_number" id="quote_number" class="form-control">
+                            <button class="btn btn-primary barcode-scan-btn" type="button" data-target="quote_number">
+                                <i class="bi bi-upc-scan"></i> Scan
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Quote Title *</label>
+                        <input type="text" name="title" id="title" class="form-control" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea name="description" id="description" class="form-control" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="valid_until" class="form-label">Valid Until</label>
+                        <input type="date" name="valid_until" id="valid_until" class="form-control">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select name="status" id="status" class="form-select">
+                            <option value="draft" selected>Draft</option>
+                            <option value="sent">Sent</option>
+                            <option value="accepted">Accepted</option>
+                            <option value="declined">Declined</option>
+                            <option value="expired">Expired</option>
+                        </select>
+                    </div>
+                    
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-plus-circle me-1"></i> Create Quote
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Customer info will appear here after creation -->
+    </div>
+    
+    <!-- Quote Items and Add Item Form -->
+    <div class="col-md-8">
+        <!-- Item Form -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Add Quote Item</h5>
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="savedPricesDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-bookmark me-1"></i> Load Saved Price
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="savedPricesDropdown">
+                        <li><h6 class="dropdown-header">Select Category</h6></li>
+                        <li><a class="dropdown-item saved-price-category" href="#" data-category="print_job">Print Jobs</a></li>
+                        <li><a class="dropdown-item saved-price-category" href="#" data-category="paper">Paper Products</a></li>
+                        <li><a class="dropdown-item saved-price-category" href="#" data-category="material">Materials</a></li>
+                        <li><a class="dropdown-item saved-price-category" href="#" data-category="service">Services</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Saved Price Selector Modal -->
+                <div class="modal fade" id="savedPriceModal" tabindex="-1" aria-labelledby="savedPriceModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="savedPriceModalLabel">Select Saved Price</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="savedPricesTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Description</th>
+                                                <th>Price</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="savedPricesTableBody">
+                                            <!-- Saved prices will be loaded here via JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="noSavedPrices" class="text-center py-4 d-none">
+                                    <p class="text-muted">No saved prices found for this category</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <form action="/quotes/create" method="post" id="quote-item-form">
+                    {{ item_form.hidden_tag() if item_form else form.hidden_tag() }}
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="name" class="form-label">Item Name *</label>
+                            <input type="text" name="name" id="name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="sku" class="form-label">SKU</label>
+                            <input type="text" name="sku" id="sku" class="form-control">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea name="description" id="item_description" class="form-control" rows="2"></textarea>
+                    </div>
+                    
+                    <h6 class="mt-4 mb-3">Print Specifications</h6>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="product_type" class="form-label">Product Type *</label>
+                            <select name="product_type" id="product_type" class="form-select" required>
+                                <option value="print_job">Regular Print Job</option>
+                                <option value="booklet">Booklet/Catalog</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="size" class="form-label">Size *</label>
+                            <select name="size" id="size" class="form-select" required>
+                                <option value="">-- Select Size --</option>
+                                <option value="Letter (8.5x11)">Letter (8.5x11)</option>
+                                <option value="Legal (8.5x14)">Legal (8.5x14)</option>
+                                <option value="Tabloid (11x17)">Tabloid (11x17)</option>
+                                <option value="12x18">12x18</option>
+                                <option value="13x19">13x19</option>
+                                <option value="Custom">Custom Size</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 custom-size-fields">
+                            <label for="custom_width" class="form-label">Width (inches) *</label>
+                            <input type="number" name="custom_width" id="custom_width" class="form-control" step="0.01" min="0">
+                        </div>
+                        <div class="col-md-4 custom-size-fields">
+                            <label for="custom_height" class="form-label">Height (inches) *</label>
+                            <input type="number" name="custom_height" id="custom_height" class="form-control" step="0.01" min="0">
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="finish_size" class="form-label">Finish Size</label>
+                            <select name="finish_size" id="finish_size" class="form-select">
+                                <option value="">-- Select Finish Size --</option>
+                                <option value="Letter (8.5x11)">Letter (8.5x11)</option>
+                                <option value="Half Letter (5.5x8.5)">Half Letter (5.5x8.5)</option>
+                                <option value="Legal (8.5x14)">Legal (8.5x14)</option>
+                                <option value="Half Legal (7x8.5)">Half Legal (7x8.5)</option>
+                                <option value="Tabloid (11x17)">Tabloid (11x17)</option>
+                                <option value="Half Tabloid (8.5x11)">Half Tabloid (8.5x11)</option>
+                                <option value="Custom">Custom</option>
+                            </select>
+                            <small class="text-muted">Specify if the item will be cut down to a different size</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="color_type" class="form-label">Color *</label>
+                            <select name="color_type" id="color_type" class="form-select" required>
+                                <option value="">-- Select Color --</option>
+                                <option value="Full Color">Full Color</option>
+                                <option value="Black & White">Black & White</option>
+                                <option value="Spot Color">Spot Color</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="sides" class="form-label">Sides *</label>
+                            <select name="sides" id="sides" class="form-select" required>
+                                <option value="">-- Select Sides --</option>
+                                <option value="Single-sided">Single-sided</option>
+                                <option value="Double-sided">Double-sided</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="n_up" class="form-label">N-up Printing</label>
+                            <select name="n_up" id="n_up" class="form-select">
+                                <option value="1">1-up (Normal)</option>
+                                <option value="2">2-up</option>
+                                <option value="4">4-up</option>
+                                <option value="8">8-up</option>
+                                <option value="9">9-up</option>
+                                <option value="16">16-up</option>
+                            </select>
+                            <small class="text-muted">Multiple pages per sheet</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="paper_weight" class="form-label">Paper Weight</label>
+                            <select name="paper_weight" id="paper_weight" class="form-select">
+                                <option value="">-- Select Weight --</option>
+                                <option value="20# Bond">20# Bond</option>
+                                <option value="24# Bond">24# Bond</option>
+                                <option value="60# Text">60# Text</option>
+                                <option value="80# Text">80# Text</option>
+                                <option value="80# Cover">80# Cover</option>
+                                <option value="100# Cover">100# Cover</option>
+                                <option value="110# Index">110# Index</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="paper_type" class="form-label">Available Paper Options</label>
+                        <select name="paper_type" id="paper_type" class="form-select">
+                            <option value="">-- Select Paper Type --</option>
+                            <!-- Dynamically populated based on size and weight selections -->
+                        </select>
+                        <div class="form-text">Paper options will be filtered based on selected size and weight</div>
+                    </div>
+                    
+                    <!-- Booklet Options (initially hidden) -->
+                    <div id="booklet-options" class="mb-3 border p-3 rounded bg-light d-none">
+                        <h6 class="mb-3 border-bottom pb-2">Booklet Options</h6>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="page_count" class="form-label">Number of Pages</label>
+                                <input type="number" id="page_count" name="page_count" class="form-control" min="4" step="4" value="4">
+                                <small class="text-muted">Must be a multiple of 4</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="cover_paper_type" class="form-label">Cover Paper</label>
+                                <select name="cover_paper_type" id="cover_paper_type" class="form-select">
+                                    <option value="">-- Same as Inside --</option>
+                                    <!-- Will be dynamically populated based on selected paper type -->
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="binding_type" class="form-label">Binding Type</label>
+                                <select name="binding_type" id="binding_type" class="form-select">
+                                    <option value="saddle_stitch">Saddle Stitch</option>
+                                    <option value="perfect_bound">Perfect Bound</option>
+                                    <option value="coil">Coil Binding</option>
+                                    <option value="wire_o">Wire-O</option>
+                                    <option value="staple">Staple</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="cover_printing" class="form-label">Cover Printing</label>
+                                <select name="cover_printing" id="cover_printing" class="form-select">
+                                    <option value="4/4">4/4 (Full Color Both Sides)</option>
+                                    <option value="4/0">4/0 (Full Color Outside Only)</option>
+                                    <option value="4/1">4/1 (Full Color Outside, B&W Inside)</option>
+                                    <option value="1/1">1/1 (B&W Both Sides)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" type="checkbox" id="self_cover" name="self_cover">
+                                    <label class="form-check-label" for="self_cover">
+                                        Self Cover (Same paper as inside)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">Finishing Options</label>
+                        <div class="row">
+                            {% for option in finishing_options %}
+                                <div class="col-md-4 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input finishing-option" type="checkbox" name="finishing_options" 
+                                               value="{{ option.name }}" id="finishing_{{ option.id }}"
+                                               data-base-price="{{ option.base_price }}"
+                                               data-per-piece="{{ option.price_per_piece }}"
+                                               data-per-sqft="{{ option.price_per_sqft }}"
+                                               data-minimum="{{ option.minimum_price }}">
+                                        <label class="form-check-label" for="finishing_{{ option.id }}">
+                                            {{ option.name }}
+                                        </label>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <!-- If no finishing options from database, show default ones with pricing data -->
+                                <div class="col-md-4 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input finishing-option" type="checkbox" name="finishing_options" 
+                                               value="Cutting" id="finishing_cutting"
+                                               data-base-price="5.00"
+                                               data-per-piece="0.10"
+                                               data-per-sqft="0.00"
+                                               data-minimum="5.00">
+                                        <label class="form-check-label" for="finishing_cutting">Cutting</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input finishing-option" type="checkbox" name="finishing_options" 
+                                               value="Folding" id="finishing_folding"
+                                               data-base-price="5.00"
+                                               data-per-piece="0.05"
+                                               data-per-sqft="0.00"
+                                               data-minimum="5.00">
+                                        <label class="form-check-label" for="finishing_folding">Folding</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input finishing-option" type="checkbox" name="finishing_options" 
+                                               value="Stapling" id="finishing_stapling"
+                                               data-base-price="2.00"
+                                               data-per-piece="0.05"
+                                               data-per-sqft="0.00"
+                                               data-minimum="2.00">
+                                        <label class="form-check-label" for="finishing_stapling">Stapling</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input finishing-option" type="checkbox" name="finishing_options" 
+                                               value="Binding" id="finishing_binding"
+                                               data-base-price="10.00"
+                                               data-per-piece="0.50"
+                                               data-per-sqft="0.00"
+                                               data-minimum="10.00">
+                                        <label class="form-check-label" for="finishing_binding">Binding</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input finishing-option" type="checkbox" name="finishing_options" 
+                                               value="Lamination" id="finishing_lamination"
+                                               data-base-price="15.00"
+                                               data-per-piece="1.00"
+                                               data-per-sqft="0.50"
+                                               data-minimum="15.00">
+                                        <label class="form-check-label" for="finishing_lamination">Lamination</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input finishing-option" type="checkbox" name="finishing_options" 
+                                               value="Drilling" id="finishing_drilling"
+                                               data-base-price="7.50"
+                                               data-per-piece="0.15"
+                                               data-per-sqft="0.00"
+                                               data-minimum="7.50">
+                                        <label class="form-check-label" for="finishing_drilling">Drilling</label>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <h6 class="mt-4 mb-3">Pricing</h6>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="quantity" class="form-label">Quantity *</label>
+                            <input type="number" name="quantity" id="quantity" class="form-control" value="1" min="1" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="unit_price" class="form-label">Unit Price *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" name="unit_price" id="unit_price" class="form-control" value="0.00" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="total_price" class="form-label">Total Price</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="text" id="total_price" class="form-control" value="0.00" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <button type="button" id="calculate-price" class="btn btn-secondary">
+                                <i class="bi bi-calculator me-1"></i> Calculate Price Based on Options
+                            </button>
+                            <small class="text-muted d-block mt-1">This will calculate price based on paper and print costs</small>
+                        </div>
+                    </div>
+                    
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-plus-circle me-1"></i> Add Item to Quote
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Quote items will appear after quote creation -->
+        <div class="card alert alert-info">
+            <div class="card-body">
+                <h5 class="alert-heading">Create Quote First</h5>
+                <p>Please create the quote with customer and basic information first. After the quote is created, you'll be able to add items to it.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle product type selection
+    const productTypeSelect = document.getElementById('product_type');
+    const bookletOptions = document.getElementById('booklet-options');
+    
+    productTypeSelect.addEventListener('change', function() {
+        if (this.value === 'booklet') {
+            bookletOptions.classList.remove('d-none');
+        } else {
+            bookletOptions.classList.add('d-none');
+        }
+    });
+    
+    // Handle custom size fields
+    const sizeSelect = document.getElementById('size');
+    const customSizeFields = document.querySelectorAll('.custom-size-fields');
+    const customWidthField = document.getElementById('custom_width');
+    const customHeightField = document.getElementById('custom_height');
+    
+    sizeSelect.addEventListener('change', function() {
+        if (this.value === 'Custom') {
+            customSizeFields.forEach(field => {
+                field.style.display = 'block';
+            });
+            customWidthField.setAttribute('required', '');
+            customHeightField.setAttribute('required', '');
+        } else {
+            customSizeFields.forEach(field => {
+                field.style.display = 'none';
+            });
+            customWidthField.removeAttribute('required');
+            customHeightField.removeAttribute('required');
+        }
+    });
+    
+    // Sync cover paper type with main paper type
+    const paperTypeSelect = document.getElementById('paper_type');
+    const coverPaperTypeSelect = document.getElementById('cover_paper_type');
+    
+    if (paperTypeSelect && coverPaperTypeSelect) {
+        // Update cover paper options when paper type changes
+        paperTypeSelect.addEventListener('change', function() {
+            // Get the current options from paper type select
+            const options = Array.from(paperTypeSelect.options);
+            
+            // Clear cover paper select except for default option
+            coverPaperTypeSelect.innerHTML = '<option value="">-- Same as Inside --</option>';
+            
+            // Add the same options to cover paper select
+            options.forEach((opt, index) => {
+                if (index > 0) { // Skip the first "Select" option
+                    coverPaperTypeSelect.appendChild(opt.cloneNode(true));
+                }
+            });
+        });
+    }
+    
+    // Handle pricing calculations
+    const quantityField = document.getElementById('quantity');
+    const unitPriceField = document.getElementById('unit_price');
+    const totalPriceField = document.getElementById('total_price');
+    const finishingOptions = document.querySelectorAll('.finishing-option');
+    
+    function updateTotalPrice() {
+        const quantity = parseFloat(quantityField.value) || 0;
+        const unitPrice = parseFloat(unitPriceField.value) || 0;
+        
+        // Calculate finishing option costs
+        let finishingCost = 0;
+        finishingOptions.forEach(option => {
+            if (option.checked) {
+                // Calculate the cost for this finishing option
+                const basePrice = parseFloat(option.dataset.basePrice) || 0;
+                const perPiece = parseFloat(option.dataset.perPiece) || 0;
+                const minimumPrice = parseFloat(option.dataset.minimum) || 0;
+                
+                // Calculate the standard cost (base plus per-piece)
+                let optionCost = basePrice;
+                if (perPiece > 0) {
+                    optionCost += perPiece * quantity;
+                }
+                
+                // Apply minimum price if needed
+                if (minimumPrice > 0 && optionCost < minimumPrice) {
+                    optionCost = minimumPrice;
+                }
+                
+                // Add to total finishing cost
+                finishingCost += optionCost;
+                
+                // For future: add per-sqft calculations if needed
+            }
+        });
+        
+        // Calculate total by adding unit price plus finishing costs
+        const baseTotal = quantity * unitPrice;
+        const total = baseTotal + finishingCost;
+        
+        totalPriceField.value = total.toFixed(2);
+        
+        // Do not automatically update the unit price when finishing options change
+        // The unit price should remain as entered by the user, and finishing costs are added separately
+        // This maintains the distinction between the base item price and the additional finishing costs
+    }
+    
+    // Add event listeners for all price-affecting fields
+    quantityField.addEventListener('input', updateTotalPrice);
+    unitPriceField.addEventListener('input', updateTotalPrice);
+    
+    // Add event listeners to finishing options
+    finishingOptions.forEach(option => {
+        option.addEventListener('change', updateTotalPrice);
+    });
+    
+    // Form validation before submit
+    document.getElementById("quote-item-form").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const customerId = document.getElementById("customer_id").value;
+        
+        if (customerId === "") {
+            alert("Please select a customer before adding an item.");
+            return false;
+        }
+        
+        if (sizeSelect.value === "Custom") {
+            if (!customWidthField.value || !customHeightField.value) {
+                alert("Please enter both width and height for custom size.");
+                return false;
+            }
+        }
+        
+        // First create the quote, then we will redirect to edit page to add items
+        const mainForm = document.querySelector('form[action="{{ url_for('quotes_create') }}"]');
+        
+        // Add a hidden field to ensure the customer_id is passed correctly
+        const customerIdValue = document.getElementById("customer_id").value;
+        console.log("Using customer ID:", customerIdValue); // Debug output
+        
+        // Create a hidden field if it doesn't exist
+        let hiddenField = mainForm.querySelector('input[name="customer_id_hidden"]');
+        if (!hiddenField) {
+            hiddenField = document.createElement('input');
+            hiddenField.type = 'hidden';
+            hiddenField.name = 'customer_id_hidden';
+            mainForm.appendChild(hiddenField);
+        }
+        hiddenField.value = customerIdValue;
+        
+        // Submit the main form
+        mainForm.submit();
+        return false;
+    });
+    
+    // Saved prices functionality
+    const savedPriceModal = new bootstrap.Modal(document.getElementById('savedPriceModal'));
+    const savedPricesTableBody = document.getElementById('savedPricesTableBody');
+    const noSavedPricesDiv = document.getElementById('noSavedPrices');
+    
+    // Load saved prices when category is selected
+    document.querySelectorAll('.saved-price-category').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const category = this.getAttribute('data-category');
+            loadSavedPrices(category);
+        });
+    });
+    
+    // Load saved prices from API
+    function loadSavedPrices(category) {
+        fetch(`/api/saved-prices?category=${category}`)
+            .then(response => response.json())
+            .then(data => {
+                savedPricesTableBody.innerHTML = '';
+                
+                if (data.length === 0) {
+                    savedPricesTableBody.innerHTML = '';
+                    noSavedPricesDiv.classList.remove('d-none');
+                } else {
+                    noSavedPricesDiv.classList.add('d-none');
+                    
+                    data.forEach(price => {
+                        const row = document.createElement('tr');
+                        
+                        const nameCell = document.createElement('td');
+                        nameCell.textContent = price.name;
+                        if (price.is_template) {
+                            const templateBadge = document.createElement('span');
+                            templateBadge.className = 'badge bg-info ms-1';
+                            templateBadge.textContent = 'Template';
+                            nameCell.appendChild(templateBadge);
+                        }
+                        row.appendChild(nameCell);
+                        
+                        const descCell = document.createElement('td');
+                        descCell.textContent = price.description || '';
+                        row.appendChild(descCell);
+                        
+                        const priceCell = document.createElement('td');
+                        priceCell.textContent = `$${price.price.toFixed(2)}`;
+                        row.appendChild(priceCell);
+                        
+                        const actionCell = document.createElement('td');
+                        const selectBtn = document.createElement('button');
+                        selectBtn.className = 'btn btn-sm btn-primary';
+                        selectBtn.textContent = 'Select';
+                        selectBtn.addEventListener('click', function() {
+                            applySavedPrice(price);
+                            savedPriceModal.hide();
+                        });
+                        actionCell.appendChild(selectBtn);
+                        row.appendChild(actionCell);
+                        
+                        savedPricesTableBody.appendChild(row);
+                    });
+                }
+                
+                savedPriceModal.show();
+            })
+            .catch(error => {
+                console.error('Error loading saved prices:', error);
+                alert('Failed to load saved prices. Please try again.');
+            });
+    }
+    
+    // Apply saved price to the form
+    function applySavedPrice(savedPrice) {
+        // Fill in basic information
+        document.getElementById('name').value = savedPrice.name;
+        document.getElementById('item_description').value = savedPrice.description || '';
+        document.getElementById('sku').value = savedPrice.sku || '';
+        document.getElementById('unit_price').value = savedPrice.price.toFixed(2);
+        
+        // Update total price
+        updateTotalPrice();
+        
+        // If this is a print job template with specific attributes
+        if (savedPrice.options) {
+            try {
+                const options = JSON.parse(savedPrice.options);
+                
+                // Apply size
+                if (options.size) {
+                    document.getElementById('size').value = options.size;
+                    
+                    // Handle custom size
+                    if (options.size === 'Custom' && options.custom_width && options.custom_height) {
+                        document.getElementById('custom_width').value = options.custom_width;
+                        document.getElementById('custom_height').value = options.custom_height;
+                        
+                        // Show custom size fields
+                        customSizeFields.forEach(field => {
+                            field.style.display = 'block';
+                        });
+                    }
+                }
+                
+                // Apply color type
+                if (options.color_type) {
+                    document.getElementById('color_type').value = options.color_type;
+                }
+                
+                // Apply sides
+                if (options.sides) {
+                    document.getElementById('sides').value = options.sides;
+                }
+                
+                // Apply paper type and weight
+                if (options.paper_type) {
+                    document.getElementById('paper_type').value = options.paper_type;
+                }
+                
+                if (options.paper_weight) {
+                    document.getElementById('paper_weight').value = options.paper_weight;
+                }
+                
+                // Apply finishing options
+                if (options.finishing_options) {
+                    const finishingOptions = options.finishing_options.split(',');
+                    
+                    // Uncheck all first
+                    document.querySelectorAll('input[name="finishing_options"]').forEach(checkbox => {
+                        checkbox.checked = false;
+                    });
+                    
+                    // Check the relevant ones
+                    finishingOptions.forEach(option => {
+                        const optionTrim = option.trim();
+                        document.querySelectorAll('input[name="finishing_options"]').forEach(checkbox => {
+                            if (checkbox.value === optionTrim) {
+                                checkbox.checked = true;
+                            }
+                        });
+                    });
+                }
+            } catch (e) {
+                console.error('Error applying saved price options:', e);
+            }
+        }
+    }
+});
+</script>
+<!-- Paper filter script for dynamic paper type selection based on size and weight -->
+<script src="{{ url_for('static', filename='js/paper_filter.js') }}"></script>
+<!-- Print price calculator -->
+<script src="{{ url_for('static', filename='js/print_calculator.js') }}"></script>
+
+<!-- Custom prices button functionality -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const customerSelect = document.getElementById('customer_id');
+    const customPricesBtn = document.getElementById('viewCustomPrices');
+    
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Enable/disable the custom prices button based on customer selection
+    customerSelect.addEventListener('change', function() {
+        if (this.value) {
+            customPricesBtn.disabled = false;
+        } else {
+            customPricesBtn.disabled = true;
+        }
+    });
+    
+    // Navigate to customer prices page when button is clicked
+    customPricesBtn.addEventListener('click', function() {
+        const customerId = customerSelect.value;
+        if (customerId) {
+            window.open(`/customer-prices/customer/${customerId}`, '_blank');
+        }
+    });
+});
+</script>
+{% endblock %}

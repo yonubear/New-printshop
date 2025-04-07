@@ -1,0 +1,338 @@
+{% extends "layout.html" %}
+
+{% block title %}Add Quote Item{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-3">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('quotes_index') }}">Quotes</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('quotes_edit', id=quote.id) }}">Quote #{{ quote.quote_number }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Add New Item</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Add Quote Item</h5>
+                </div>
+                <div class="card-body">
+                    <form id="simple-quote-form" method="POST" action="{{ url_for('quote_items_add', quote_id=quote.id) }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <!-- Basic Information Section -->
+                        <div class="row mb-4">
+                            <div class="col-md-8">
+                                <div class="form-floating mb-3">
+                                    <input type="text" class="form-control" id="name" name="name" placeholder="Item Name" value="Regular Print">
+                                    <label for="name">Item Name</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-floating mb-3">
+                                    <input type="number" class="form-control" id="quantity" name="quantity" placeholder="Quantity" value="100" min="1">
+                                    <label for="quantity">Quantity</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Item Details Accordion -->
+                        <div class="accordion mb-4" id="itemDetailsAccordion">
+                            <!-- Paper Options -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="paperHeading">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#paperCollapse" aria-expanded="true" aria-controls="paperCollapse">
+                                        Paper Options
+                                    </button>
+                                </h2>
+                                <div id="paperCollapse" class="accordion-collapse collapse show" aria-labelledby="paperHeading">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label for="paper_size" class="form-label">Paper Size</label>
+                                                <select class="form-select mb-3" id="paper_size" name="paper_size">
+                                                    <option value="8.5x11" selected>Letter (8.5" x 11")</option>
+                                                    <option value="8.5x14">Legal (8.5" x 14")</option>
+                                                    <option value="11x17">Tabloid (11" x 17")</option>
+                                                    <option value="Custom">Custom Size</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="paper_type" class="form-label">Paper Type</label>
+                                                <select class="form-select mb-3" id="paper_type" name="paper_type">
+                                                    <option value="Bond" selected>Bond</option>
+                                                    <option value="Text">Text</option>
+                                                    <option value="Cardstock">Cardstock</option>
+                                                    <option value="Gloss">Gloss</option>
+                                                    <option value="Matte">Matte</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label for="paper_weight" class="form-label">Paper Weight</label>
+                                                <select class="form-select mb-3" id="paper_weight" name="paper_weight">
+                                                    <option value="20#" selected>20# (Standard Copy)</option>
+                                                    <option value="24#">24# (Premium Copy)</option>
+                                                    <option value="28#">28# (Premium Bond)</option>
+                                                    <option value="60#">60# (Text)</option>
+                                                    <option value="80#">80# (Cover)</option>
+                                                    <option value="100#">100# (Cover)</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="paper_color" class="form-label">Paper Color</label>
+                                                <select class="form-select mb-3" id="paper_color" name="paper_color">
+                                                    <option value="White" selected>White</option>
+                                                    <option value="Off-White">Off-White</option>
+                                                    <option value="Cream">Cream</option>
+                                                    <option value="Gray">Gray</option>
+                                                    <option value="Yellow">Yellow</option>
+                                                    <option value="Blue">Blue</option>
+                                                    <option value="Green">Green</option>
+                                                    <option value="Pink">Pink</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Print Options -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="printHeading">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#printCollapse" aria-expanded="false" aria-controls="printCollapse">
+                                        Print Options
+                                    </button>
+                                </h2>
+                                <div id="printCollapse" class="accordion-collapse collapse" aria-labelledby="printHeading">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label d-block">Print Type</label>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="radio" name="print_type" id="print_type_bw" value="B/W" checked>
+                                                        <label class="form-check-label" for="print_type_bw">Black & White</label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="radio" name="print_type" id="print_type_color" value="Color">
+                                                        <label class="form-check-label" for="print_type_color">Full Color</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label d-block">Sides</label>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="radio" name="sides" id="sides_single" value="Single" checked>
+                                                        <label class="form-check-label" for="sides_single">Single-sided</label>
+                                                    </div>
+                                                    <div class="form-check form-check-inline">
+                                                        <input class="form-check-input" type="radio" name="sides" id="sides_double" value="Double">
+                                                        <label class="form-check-label" for="sides_double">Double-sided</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="n_up" class="form-label">Multiple-up Printing</label>
+                                            <select class="form-select" id="n_up" name="n_up">
+                                                <option value="1" selected>1-up (Normal)</option>
+                                                <option value="2">2-up (Two per page)</option>
+                                                <option value="4">4-up (Four per page)</option>
+                                                <option value="8">8-up (Eight per page)</option>
+                                            </select>
+                                            <div class="form-text text-muted">Prints multiple copies on a single page</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Notes -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="notesHeading">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#notesCollapse" aria-expanded="false" aria-controls="notesCollapse">
+                                        Additional Notes
+                                    </button>
+                                </h2>
+                                <div id="notesCollapse" class="accordion-collapse collapse" aria-labelledby="notesHeading">
+                                    <div class="accordion-body">
+                                        <div class="mb-3">
+                                            <label for="description" class="form-label">Special Instructions</label>
+                                            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Add any special instructions or notes here..."></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Price Section -->
+                        <div class="card mb-4 bg-light">
+                            <div class="card-header">
+                                <h5 class="mb-0">Pricing</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-floating mb-3">
+                                            <input type="number" class="form-control" id="unit_price" name="unit_price" step="0.01" value="1.00">
+                                            <label for="unit_price">Unit Price ($)</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-floating mb-3">
+                                            <input type="number" class="form-control" id="quantity_display_field" value="100" disabled>
+                                            <label for="quantity_display_field">Quantity</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-floating mb-3">
+                                            <input type="number" class="form-control" id="total_price_field" name="total_price" value="100.00" readonly>
+                                            <label for="total_price_field">Total Price ($)</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('quotes_edit', id=quote.id) }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Back to Quote
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Add to Quote
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-info-circle"></i> Quote Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>Quote #:</strong> {{ quote.quote_number }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Customer:</strong> {{ quote.customer.name }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Status:</strong> 
+                        <span class="badge bg-{{ 'success' if quote.status == 'accepted' else 'warning' if quote.status == 'draft' else 'secondary' }}">
+                            {{ quote.status|capitalize }}
+                        </span>
+                    </div>
+                    {% if quote.items %}
+                    <div class="mb-2">
+                        <strong>Items:</strong> {{ quote.items|length }}
+                    </div>
+                    <div class="mb-2">
+                        <strong>Current Total:</strong> ${{ "%.2f"|format(quote.total_price) }}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle"></i> This quote has no items yet.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-calculator"></i> Quick Pricing
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">Select a pre-set price or enter your own.</p>
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-outline-primary price-preset" data-price="0.50">$0.50 per copy</button>
+                        <button type="button" class="btn btn-outline-primary price-preset" data-price="1.00">$1.00 per copy</button>
+                        <button type="button" class="btn btn-outline-primary price-preset" data-price="1.50">$1.50 per copy</button>
+                        <button type="button" class="btn btn-outline-primary price-preset" data-price="2.00">$2.00 per copy</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Quote item simple form loaded');
+    
+    // Form elements
+    const form = document.getElementById('simple-quote-form');
+    const quantityInput = document.getElementById('quantity');
+    const unitPriceInput = document.getElementById('unit_price');
+    const totalPriceField = document.getElementById('total_price_field');
+    const quantityDisplayField = document.getElementById('quantity_display_field');
+    const pricePresetButtons = document.querySelectorAll('.price-preset');
+    
+    // Initialize values
+    updateTotalPrice();
+    
+    // Keep quantity display in sync
+    if (quantityInput && quantityDisplayField) {
+        quantityInput.addEventListener('input', function() {
+            quantityDisplayField.value = this.value;
+            updateTotalPrice();
+        });
+    }
+    
+    // Update total price when unit price changes
+    if (unitPriceInput) {
+        unitPriceInput.addEventListener('input', updateTotalPrice);
+    }
+    
+    // Pre-set price buttons
+    if (pricePresetButtons.length > 0) {
+        pricePresetButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const price = parseFloat(this.getAttribute('data-price'));
+                if (unitPriceInput && !isNaN(price)) {
+                    unitPriceInput.value = price.toFixed(2);
+                    updateTotalPrice();
+                }
+            });
+        });
+    }
+    
+    // Calculate total price
+    function updateTotalPrice() {
+        if (quantityInput && unitPriceInput && totalPriceField) {
+            const quantity = parseInt(quantityInput.value) || 0;
+            const unitPrice = parseFloat(unitPriceInput.value) || 0;
+            const totalPrice = quantity * unitPrice;
+            
+            console.log(`Calculating total: ${quantity} × $${unitPrice.toFixed(2)} = $${totalPrice.toFixed(2)}`);
+            totalPriceField.value = totalPrice.toFixed(2);
+        }
+    }
+    
+    // Submit handler to make sure total_price is updated before submission
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Make sure total price is updated before submission
+            updateTotalPrice();
+        });
+    }
+});
+</script>
+{% endblock %}

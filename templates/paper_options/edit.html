@@ -1,0 +1,205 @@
+{% extends "layout.html" %}
+
+{% block title %}Edit Paper Option - Print Order Management System{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Edit Paper Option</h1>
+    <a href="{{ url_for('paper_options_index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Paper Options
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form action="{{ url_for('paper_options_edit', id=paper_option.id) }}" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="name" class="form-label">Name *</label>
+                    <input type="text" name="name" id="name" class="form-control" value="{{ paper_option.name }}" required>
+                    <div class="form-text">Enter the paper name or description</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="category" class="form-label">Category *</label>
+                    <select name="category" id="category" class="form-select" required>
+                        <option value="">-- Select Category --</option>
+                        <option value="Bond" {% if paper_option.category == 'Bond' %}selected{% endif %}>Bond</option>
+                        <option value="Text" {% if paper_option.category == 'Text' %}selected{% endif %}>Text</option>
+                        <option value="Cover" {% if paper_option.category == 'Cover' %}selected{% endif %}>Cover</option>
+                        <option value="Card Stock" {% if paper_option.category == 'Card Stock' %}selected{% endif %}>Card Stock</option>
+                        <option value="Specialty" {% if paper_option.category == 'Specialty' %}selected{% endif %}>Specialty</option>
+                        <option value="Coated" {% if paper_option.category == 'Coated' %}selected{% endif %}>Coated</option>
+                        <option value="Uncoated" {% if paper_option.category == 'Uncoated' %}selected{% endif %}>Uncoated</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea name="description" id="description" class="form-control" rows="2">{{ paper_option.description or '' }}</textarea>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="weight" class="form-label">Weight</label>
+                    <input type="text" name="weight" id="weight" class="form-control" value="{{ paper_option.weight or '' }}" placeholder="e.g., 20#, 80#, 100#">
+                </div>
+                <div class="col-md-4">
+                    <label for="size" class="form-label">Size</label>
+                    <select name="size" id="size" class="form-select">
+                        <option value="">-- Select Size --</option>
+                        <option value="Letter" {% if paper_option.size == 'Letter' %}selected{% endif %}>Letter (8.5 x 11)</option>
+                        <option value="Legal" {% if paper_option.size == 'Legal' %}selected{% endif %}>Legal (8.5 x 14)</option>
+                        <option value="Tabloid" {% if paper_option.size == 'Tabloid' %}selected{% endif %}>Tabloid (11 x 17)</option>
+                        <option value="12x18" {% if paper_option.size == '12x18' %}selected{% endif %}>12 x 18</option>
+                        <option value="13x19" {% if paper_option.size == '13x19' %}selected{% endif %}>13 x 19</option>
+                        <option value="Roll" {% if paper_option.size == 'Roll' %}selected{% endif %}>Roll Paper</option>
+                        <option value="Custom" {% if paper_option.size == 'Custom' %}selected{% endif %}>Custom</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="color" class="form-label">Color</label>
+                    <input type="text" name="color" id="color" class="form-control" value="{{ paper_option.color or '' }}" placeholder="e.g., White, Cream, Blue">
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="width" class="form-label">Width (inches)</label>
+                    <input type="number" name="width" id="width" class="form-control" step="0.125" min="0" value="{{ paper_option.width or '' }}" placeholder="e.g., 8.5">
+                    <div class="form-text">For custom sizes or square footage calculations</div>
+                </div>
+                <div class="col-md-6 height-field" {% if paper_option.size == 'Roll' %}style="display: none;"{% endif %}>
+                    <label for="height" class="form-label">Height (inches)</label>
+                    <input type="number" name="height" id="height" class="form-control" step="0.125" min="0" value="{{ paper_option.height or '' }}" placeholder="e.g., 11">
+                    <div class="form-text">For custom sizes or square footage calculations</div>
+                </div>
+            </div>
+            
+            <!-- Roll Paper Specific Fields -->
+            <div class="roll-specific-fields mb-3" {% if paper_option.size != "Roll" %}style="display: none;"{% endif %}>
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Roll Paper Specific Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is_roll" name="is_roll" value="1" {% if paper_option.is_roll %}checked{% endif %}>
+                                <label class="form-check-label" for="is_roll">
+                                    This is roll media
+                                </label>
+                            </div>
+                            <div class="form-text">Check this if this paper comes on a roll</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="roll_length" class="form-label">Roll Length (feet)</label>
+                            <input type="number" name="roll_length" id="roll_length" class="form-control" step="0.1" min="0" value="{{ paper_option.roll_length or '' }}" placeholder="e.g., 150">
+                            <div class="form-text">The total length of the roll in feet</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="pricing_method" class="form-label">Pricing Method *</label>
+                <select name="pricing_method" id="pricing_method" class="form-select" required>
+                    <option value="sheet" {% if paper_option.pricing_method == 'sheet' %}selected{% endif %}>Per Sheet</option>
+                    <option value="sqft" {% if paper_option.pricing_method == 'sqft' %}selected{% endif %}>Square Footage</option>
+                </select>
+                <div class="form-text">Choose how this paper is priced - per sheet or by square footage</div>
+            </div>
+            
+            <div class="row mb-3 per-sheet-pricing" {% if paper_option.pricing_method == 'sqft' %}style="display: none;"{% endif %}>
+                <div class="col-md-6">
+                    <label for="price_per_sheet" class="form-label">Price per Sheet (Retail) *</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" name="price_per_sheet" id="price_per_sheet" class="form-control" step="0.01" min="0" value="{{ paper_option.price_per_sheet or '0.00' }}" required>
+                    </div>
+                    <div class="form-text">Retail price charged to customers</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="cost_per_sheet" class="form-label">Cost per Sheet</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" name="cost_per_sheet" id="cost_per_sheet" class="form-control" step="0.01" min="0" value="{{ paper_option.cost_per_sheet or '0.00' }}">
+                    </div>
+                    <div class="form-text">Your cost for this paper (for profit calculations)</div>
+                </div>
+            </div>
+            
+            <div class="row mb-3 sqft-pricing" {% if paper_option.pricing_method != 'sqft' %}style="display: none;"{% endif %}>
+                <div class="col-md-6">
+                    <label for="price_per_sqft" class="form-label">Price per Sq Ft (Retail) *</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" name="price_per_sqft" id="price_per_sqft" class="form-control" step="0.01" min="0" value="{{ paper_option.price_per_sqft or '0.00' }}">
+                    </div>
+                    <div class="form-text">Retail price per square foot</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="cost_per_sqft" class="form-label">Cost per Sq Ft</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" name="cost_per_sqft" id="cost_per_sqft" class="form-control" step="0.01" min="0" value="{{ paper_option.cost_per_sqft or '0.00' }}">
+                    </div>
+                    <div class="form-text">Your cost per square foot (for profit calculations)</div>
+                </div>
+            </div>
+            
+            <div class="text-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save me-1"></i> Update Paper Option
+                </button>
+            </div>
+            
+            <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                const pricingMethodSelect = document.getElementById("pricing_method");
+                const perSheetPricing = document.querySelector(".per-sheet-pricing");
+                const sqftPricing = document.querySelector(".sqft-pricing");
+                const sizeSelect = document.getElementById("size");
+                const rollFields = document.querySelector(".roll-specific-fields");
+                const heightField = document.querySelector(".height-field");
+                
+                // Function to update pricing fields visibility
+                const updatePricingFields = function() {
+                    if (pricingMethodSelect.value === "sqft") {
+                        perSheetPricing.style.display = "none";
+                        sqftPricing.style.display = "flex";
+                    } else {
+                        perSheetPricing.style.display = "flex";
+                        sqftPricing.style.display = "none";
+                    }
+                };
+                
+                // Function to update roll fields visibility
+                const updateRollFields = function() {
+                    if (sizeSelect.value === "Roll") {
+                        rollFields.style.display = "block";
+                        heightField.style.display = "none"; // Hide height field for roll paper
+                        // For roll paper, default to sqft pricing
+                        pricingMethodSelect.value = "sqft";
+                        updatePricingFields();
+                    } else {
+                        rollFields.style.display = "none";
+                        heightField.style.display = "block"; // Show height field for other paper types
+                    }
+                };
+                
+                // Set initial state
+                updatePricingFields();
+                
+                // Add event listeners
+                pricingMethodSelect.addEventListener("change", updatePricingFields);
+                sizeSelect.addEventListener("change", updateRollFields);
+            });
+            </script>
+        </form>
+    </div>
+</div>
+{% endblock %}

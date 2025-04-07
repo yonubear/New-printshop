@@ -1,0 +1,568 @@
+{% extends "layout.html" %}
+
+{% block title %}Add Quote Item{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('quotes_index') }}">Quotes</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('quotes_edit', id=quote.id) }}">Quote #{{ quote.quote_number }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Add New Item</li>
+                </ol>
+            </nav>
+            
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">New Quote Item</h5>
+                </div>
+                <div class="card-body">
+                    <form id="quote-item-form" method="POST" action="{{ url_for('quote_items_add', quote_id=quote.id) }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-8">
+                                <label for="name" class="form-label">Item Name</label>
+                                <input type="text" class="form-control" id="name" name="name" value="Regular Print" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="quantity" class="form-label">Quantity</label>
+                            <div class="col-md-4">
+                                <label for="quantity" class="form-label">Quantity</label>
+                                                <option value="Cardstock">Cardstock</option>
+                                                <option value="Gloss">Gloss</option>
+                                                <option value="Matte">Matte</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="paper_weight" class="form-label">Paper Weight</label>
+                                            <select class="form-select" id="paper_weight" name="paper_weight">
+                                                <option value="20#" selected>20# (Standard Copy)</option>
+                                                <option value="24#">24# (Premium Copy)</option>
+                                                <option value="28#">28# (Premium Bond)</option>
+                                                <option value="60#">60# (Text)</option>
+                                                <option value="80#">80# (Cover)</option>
+                                                <option value="100#">100# (Cover)</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="paper_color" class="form-label">Paper Color</label>
+                                            <select class="form-select" id="paper_color" name="paper_color">
+                                                <option value="White" selected>White</option>
+                                                <option value="Off-White">Off-White</option>
+                                                <option value="Cream">Cream</option>
+                                                <option value="Gray">Gray</option>
+                                                <option value="Yellow">Yellow</option>
+                                                <option value="Blue">Blue</option>
+                                                <option value="Green">Green</option>
+                                                <option value="Pink">Pink</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-6">
+                                <div class="card h-100">
+                                    <div class="card-header bg-light fw-bold">Print Options</div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="print_type" class="form-label">Print Type</label>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="print_type" id="print_type_bw" value="B/W" checked>
+                                                <label class="form-check-label" for="print_type_bw">
+                                                    Black & White
+                                                </label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="print_type" id="print_type_color" value="Color">
+                                                <label class="form-check-label" for="print_type_color">
+                                                    Full Color
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Sides</label>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="sides" id="sides_single" value="Single" checked>
+                                                <label class="form-check-label" for="sides_single">
+                                                    Single-sided
+                                                </label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="sides" id="sides_double" value="Double">
+                                                <label class="form-check-label" for="sides_double">
+                                                    Double-sided
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="n_up" class="form-label">Multiple-up Printing</label>
+                                            <select class="form-select" id="n_up" name="n_up">
+                                                <option value="1" selected>1-up (Normal)</option>
+                                                <option value="2">2-up (Two per page)</option>
+                                                <option value="4">4-up (Four per page)</option>
+                                                <option value="8">8-up (Eight per page)</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Finishing Options</label>
+                                            <div id="finishing-categories">
+                                                <!-- Finishing categories will be loaded dynamically -->
+                                                <div class="text-muted small mb-2">Loading finishing options...</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Additional Notes</label>
+                            <textarea class="form-control" id="description" name="description" rows="2" placeholder="Additional instructions or special requirements"></textarea>
+                        </div>
+                        
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="unit_price" name="unit_price" value="0.00" step="0.01" min="0" required>
+                                    <span class="input-group-text">per unit</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <a href="{{ url_for('quotes_edit', id=quote.id) }}" class="btn btn-outline-secondary me-2">Cancel</a>
+                                <button type="submit" class="btn btn-primary">Add to Quote</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Price Calculator</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Calculated Price</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="text" class="form-control-plaintext" id="calculated_price" value="0.00" readonly>
+                        </div>
+                        <small class="text-muted">Based on selected options</small>
+                    </div>
+                    
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <td>Base Price:</td>
+                                <td class="text-end">$<span id="base_price">0.00</span></td>
+                            </tr>
+                            <tr>
+                                <td>Paper Cost:</td>
+                                <td class="text-end">$<span id="paper_cost">0.00</span></td>
+                            </tr>
+                            <tr>
+                                <td>Printing:</td>
+                                <td class="text-end">$<span id="printing_cost">0.00</span></td>
+                            </tr>
+                            <tr>
+                                <td>Finishing:</td>
+                                <td class="text-end">$<span id="finishing_cost">0.00</span></td>
+                            </tr>
+                            <tr class="table-active fw-bold">
+                                <td>Unit Price:</td>
+                                <td class="text-end">$<span id="unit_price_display">0.00</span></td>
+                            </tr>
+                            <tr>
+                                <td>Quantity:</td>
+                                <td class="text-end"><span id="quantity_display">100</span></td>
+                            </tr>
+                            <tr class="table-success fw-bold">
+                                <td>Total Price:</td>
+                                <td class="text-end">$<span id="total_price_display">0.00</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <div class="text-center mb-2 small text-muted">
+                        Select finishing options above to add them to the calculation
+                    </div>
+                    <div class="d-grid gap-2">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-success" type="button" id="calculate_price_btn">
+                            Calculate Price
+                        </button>
+                        
+                        <button class="btn btn-outline-primary" type="button" id="use_default_price">
+                            Use Default Price ($1.00)
+                        </button>
+                    </div>
+                    
+                    <script>
+                    document.addEventListener("DOMContentLoaded", function() {
+                        // Simple direct calculation
+                        const calcBtn = document.getElementById("calculate_price_btn");
+                        if (calcBtn) {
+                            calcBtn.addEventListener("click", function() {
+                                // Get form values
+                                const quantity = parseInt(document.getElementById("quantity").value) || 100;
+                                
+                                // Simple calculation based on quantity
+                                let basePrice = 0.15; // Base price per item
+                                
+                                // Apply quantity discounts
+                                if (quantity >= 500) basePrice = 0.10;
+                                if (quantity >= 1000) basePrice = 0.08;
+                                
+                                const unitPrice = basePrice;
+                                const totalPrice = unitPrice * quantity;
+                                
+                                // Update price fields
+                                document.getElementById("unit_price").value = unitPrice.toFixed(2);
+                                
+                                // Check if display elements exist
+                                const unitPriceDisplay = document.getElementById("unit_price_display");
+                                const totalPriceDisplay = document.getElementById("total_price_display");
+                                
+                                if (unitPriceDisplay) unitPriceDisplay.textContent = unitPrice.toFixed(2);
+                                if (totalPriceDisplay) totalPriceDisplay.textContent = totalPrice.toFixed(2);
+                                
+                                // Also update hidden fields if they exist
+                                const calculatedPriceHidden = document.getElementById("calculated_price_hidden");
+                                if (calculatedPriceHidden) calculatedPriceHidden.value = unitPrice.toFixed(2);
+                                
+                                console.log("Simple calculation completed - unit price:", unitPrice.toFixed(2), 
+                                            "total:", totalPrice.toFixed(2));
+                            });
+                        }
+                    });
+                    </script>
+                    
+                    <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        // Simple direct calculation
+                        const calcBtn = document.getElementById('calculate_price_btn');
+                        if (calcBtn) {
+                            calcBtn.addEventListener('click', function() {
+                                // Get form values
+                                const quantity = parseInt(document.getElementById('quantity').value) || 100;
+                                
+                                // Simple calculation based on quantity
+                                let basePrice = 0.15; // Base price per item
+                                
+                                // Apply quantity discounts
+                                if (quantity >= 500) basePrice = 0.10;
+                                if (quantity >= 1000) basePrice = 0.08;
+                                
+                                const unitPrice = basePrice;
+                                const totalPrice = unitPrice * quantity;
+                                
+                                // Update price fields
+                                document.getElementById('unit_price').value = unitPrice.toFixed(2);
+                                
+                                // Check if display elements exist
+                                const unitPriceDisplay = document.getElementById('unit_price_display');
+                                const totalPriceDisplay = document.getElementById('total_price_display');
+                                
+                                if (unitPriceDisplay) unitPriceDisplay.textContent = unitPrice.toFixed(2);
+                                if (totalPriceDisplay) totalPriceDisplay.textContent = totalPrice.toFixed(2);
+                                
+                                // Also update hidden fields if they exist
+                                const calculatedPriceHidden = document.getElementById('calculated_price_hidden');
+                                if (calculatedPriceHidden) calculatedPriceHidden.value = unitPrice.toFixed(2);
+                                
+                                console.log('Simple calculation completed - unit price:', unitPrice.toFixed(2), 
+                                            'total:', totalPrice.toFixed(2));
+                            });
+                        }
+                    });
+                    </script>
+                        <button class="btn btn-outline-primary" type="button" id="use_default_price">
+                            Use Default Price ($1.00)
+                        </button>
+                    </div>
+                    
+                    <!-- Hidden calculated price field for form submission -->
+                    <input type="hidden" id="calculated_price_hidden" name="calculated_price" value="0.00">
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Common Presets</h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Quick selection of common print job configurations</p>
+                    <div class="list-group">
+                        <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" id="preset-bw-copies">
+                            B/W Copies
+                            <span class="badge bg-secondary">20# White</span>
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" id="preset-color-copies">
+                            Color Copies
+                            <span class="badge bg-secondary">28# White</span>
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" id="preset-business-cards">
+                            Business Cards
+                            <span class="badge bg-secondary">100# Cover</span>
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" id="preset-flyers">
+                            Color Flyers
+                            <span class="badge bg-secondary">80# Gloss</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize quote item calculator
+    initializeQuoteCalculator();
+});
+
+// Quote Item Form Functionality
+function initializeQuoteCalculator() {
+    // Get form elements
+    const nameInput = document.getElementById('name');
+    const quantityInput = document.getElementById('quantity');
+    const unitPriceInput = document.getElementById('unit_price');
+    
+    // Get calculated price elements
+    const calculatedPriceField = document.getElementById("calculated_price");
+    const calculatedPriceHidden = document.getElementById('calculated_price_hidden');
+    const unitPriceDisplay = document.getElementById('unit_price_display');
+    const quantityDisplay = document.getElementById('quantity_display');
+    const totalPriceDisplay = document.getElementById('total_price_display');
+    const useCalculatedPriceBtn = document.getElementById('use_calculated_price');
+    
+    // Update displays when quantity changes
+    if (quantityInput) {
+        quantityInput.addEventListener('input', function() {
+            if (quantityDisplay) {
+                quantityDisplay.textContent = this.value;
+            }
+            updateTotalPrice();
+        });
+    }
+    
+    // Update displays when unit price changes
+    if (unitPriceInput) {
+        unitPriceInput.addEventListener('input', function() {
+            if (unitPriceDisplay) {
+                unitPriceDisplay.textContent = parseFloat(this.value).toFixed(2);
+            }
+            updateTotalPrice();
+        });
+    }
+    
+    // Use calculated price button functionality with data transfer
+    if (useCalculatedPriceBtn) {
+        useCalculatedPriceBtn.addEventListener('click', function() {
+            const calculatedPriceField = document.getElementById("calculated_price");
+            if (calculatedPriceField && unitPriceInput) {
+                // Get calculated price and data directly from the button's data attributes
+                const calculatedPrice = parseFloat(this.getAttribute('data-price')) || 0;
+                const printType = this.getAttribute('data-print-type');
+                const sides = this.getAttribute('data-sides');
+                const nUp = this.getAttribute('data-n-up');
+                
+                console.log("Using calculated price with settings:", 
+                    "price:", calculatedPrice,
+                    "print type:", printType, 
+                    "sides:", sides, 
+                    "n-up:", nUp);
+                
+                // Update price
+                unitPriceInput.value = calculatedPrice.toFixed(2);
+                if (unitPriceDisplay) {
+                    unitPriceDisplay.textContent = calculatedPrice.toFixed(2);
+                    const calculatedPriceHidden = document.getElementById("calculated_price_hidden");
+                    if (calculatedPriceHidden) {
+                        calculatedPriceHidden.value = calculatedPrice.toFixed(2);
+                    }
+                }
+                
+                // Update print options
+                if (printType) {
+                    const printTypeBW = document.getElementById('print_type_bw');
+                    const printTypeColor = document.getElementById('print_type_color');
+                    if (printTypeBW && printTypeColor) {
+                        printTypeBW.checked = (printType === 'B/W');
+                        printTypeColor.checked = (printType === 'Color');
+                    }
+                }
+                
+                if (sides) {
+                    const sidesSingle = document.getElementById('sides_single');
+                    const sidesDouble = document.getElementById('sides_double');
+                    if (sidesSingle && sidesDouble) {
+                        sidesSingle.checked = (sides === 'Single');
+                        sidesDouble.checked = (sides === 'Double');
+                    }
+                }
+                
+                if (nUp) {
+                    const nUpSelect = document.getElementById('n_up');
+                    if (nUpSelect) {
+                        nUpSelect.value = nUp;
+                    }
+                }
+                
+                updateTotalPrice();
+            }
+        });
+    }
+    
+    // Setup preset buttons
+    setupPresetButtons();
+    
+    // Update total price based on quantity and unit price
+    function updateTotalPrice() {
+        const quantity = parseInt(quantityInput?.value || 0);
+        const unitPrice = parseFloat(unitPriceInput?.value || 0);
+        const totalPrice = quantity * unitPrice;
+        
+        if (totalPriceDisplay) {
+            totalPriceDisplay.textContent = totalPrice.toFixed(2);
+        }
+    }
+    
+    // Setup preset buttons
+    function setupPresetButtons() {
+        const presetBWCopiesBtn = document.getElementById('preset-bw-copies');
+        const presetColorCopiesBtn = document.getElementById('preset-color-copies');
+        const presetBusinessCardsBtn = document.getElementById('preset-business-cards');
+        const presetFlyersBtn = document.getElementById('preset-flyers');
+        
+        if (presetBWCopiesBtn) {
+            presetBWCopiesBtn.addEventListener('click', function() {
+                setupPreset('B/W Copies', 100, 'Letter', 'Bond', '20#', 'White', 'B/W', 'Single', '1', 0.10);
+            });
+        }
+        
+        if (presetColorCopiesBtn) {
+            presetColorCopiesBtn.addEventListener('click', function() {
+                setupPreset('Color Copies', 100, 'Letter', 'Bond', '28#', 'White', 'Color', 'Single', '1', 0.49);
+            });
+        }
+        
+        if (presetBusinessCardsBtn) {
+            presetBusinessCardsBtn.addEventListener('click', function() {
+                setupPreset('Business Cards', 500, 'Business Card', 'Cover', '100#', 'White', 'Color', 'Double', '8', 0.10);
+            });
+        }
+        
+        if (presetFlyersBtn) {
+            presetFlyersBtn.addEventListener('click', function() {
+                setupPreset('Color Flyers', 500, 'Letter', 'Gloss', '80#', 'White', 'Color', 'Double', '1', 0.25);
+            });
+        }
+    }
+    
+    // Setup form with preset values
+    function setupPreset(name, quantity, paperSize, paperType, paperWeight, paperColor, printType, sides, nUp, unitPrice) {
+        if (nameInput) nameInput.value = name;
+        if (quantityInput) {
+            quantityInput.value = quantity;
+            if (quantityDisplay) quantityDisplay.textContent = quantity;
+        }
+        
+        // Paper options
+        const paperSizeSelect = document.getElementById('paper_size');
+        const paperTypeSelect = document.getElementById('paper_type');
+        const paperWeightSelect = document.getElementById('paper_weight');
+        const paperColorSelect = document.getElementById('paper_color');
+        
+        if (paperSizeSelect) paperSizeSelect.value = paperSize;
+        if (paperTypeSelect) paperTypeSelect.value = paperType;
+        if (paperWeightSelect) paperWeightSelect.value = paperWeight;
+        if (paperColorSelect) paperColorSelect.value = paperColor;
+        
+        // Print options
+        const printTypeBW = document.getElementById('print_type_bw');
+        const printTypeColor = document.getElementById('print_type_color');
+        if (printTypeBW && printTypeColor) {
+            printTypeBW.checked = (printType === 'B/W');
+            printTypeColor.checked = (printType === 'Color');
+        }
+        
+        const sidesSingle = document.getElementById('sides_single');
+        const sidesDouble = document.getElementById('sides_double');
+        if (sidesSingle && sidesDouble) {
+            sidesSingle.checked = (sides === 'Single');
+            sidesDouble.checked = (sides === 'Double');
+        }
+        
+        const nUpSelect = document.getElementById('n_up');
+        if (nUpSelect) nUpSelect.value = nUp;
+        
+        // Price
+        if (unitPriceInput) {
+            unitPriceInput.value = unitPrice.toFixed(2);
+            if (unitPriceDisplay) unitPriceDisplay.textContent = unitPrice.toFixed(2);
+        }
+        
+        // Update the total
+        updateTotalPrice();
+    }
+}
+</script>
+
+<script>
+// Direct handler for the default price button - adding it in multiple places to ensure it works
+document.addEventListener('DOMContentLoaded', function() {
+    const defaultPriceBtn = document.getElementById('use_default_price');
+    if (defaultPriceBtn) {
+        defaultPriceBtn.addEventListener('click', function() {
+            // Set a default price of $1.00
+            const defaultPrice = 1.00;
+            
+            // Update unit price field
+            const unitPriceInput = document.getElementById('unit_price');
+            if (unitPriceInput) {
+                unitPriceInput.value = defaultPrice.toFixed(2);
+            }
+            
+            // Update display fields
+            const unitPriceDisplay = document.getElementById('unit_price_display');
+            // Calculate total price
+            const quantity = parseInt(document.getElementById('quantity').value) || 100;
+            const totalPrice = defaultPrice * quantity;
+            
+            // Update total price display
+            const totalPriceDisplay = document.getElementById('total_price_display');
+            if (totalPriceDisplay) {
+                totalPriceDisplay.textContent = totalPrice.toFixed(2);
+            }
+            
+            // Update hidden calculated price field
+            const calculatedPriceHidden = document.getElementById('calculated_price_hidden');
+            if (calculatedPriceHidden) {
+                calculatedPriceHidden.value = defaultPrice.toFixed(2);
+            }
+            
+            // Show alert to confirm
+            alert('Default price of $1.00 has been applied. Total: $' + totalPrice.toFixed(2));
+        });
+    }
+});
+</script>
+
+<!-- Fixed Price Calculator -->
+<script src="{{ url_for('static', filename='js/quote_calculator.js') }}"></script>
+{% endblock %}

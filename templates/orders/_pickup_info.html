@@ -1,0 +1,98 @@
+<!-- Pickup Information -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Pickup Information</h5>
+        <div>
+            {% if not order.is_picked_up %}
+                <a href="{{ url_for('order_pickup', order_id=order.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-pen me-1"></i> Record Pickup
+                </a>
+            {% else %}
+                {% set receipt_file = order.files|selectattr('file_type', 'equalto', 'receipt')|list|first %}
+                {% if receipt_file %}
+                    <a href="{{ url_for('files_download', file_id=receipt_file.id) }}" class="btn btn-sm btn-outline-info">
+                        <i class="bi bi-download me-1"></i> Download Receipt
+                    </a>
+                {% endif %}
+                <a href="{{ url_for('order_pickup', order_id=order.id) }}" class="btn btn-sm btn-outline-secondary ms-1">
+                    <i class="bi bi-pencil me-1"></i> Update Pickup
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        {% if order.is_picked_up %}
+            <div class="row mb-3">
+                <div class="col-md-4 fw-bold">Status:</div>
+                <div class="col-md-8">
+                    <span class="badge bg-success">Picked Up</span>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4 fw-bold">Pickup Date:</div>
+                <div class="col-md-8">
+                    {{ order.pickup_date.strftime('%Y-%m-%d %H:%M') }}
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4 fw-bold">Picked Up By:</div>
+                <div class="col-md-8">
+                    {{ order.pickup_by }}
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4 fw-bold">Signer:</div>
+                <div class="col-md-8">
+                    {{ order.pickup_signature_name }}
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4 fw-bold">Confirmation Type:</div>
+                <div class="col-md-8">
+                    {% if "data:image/png" in order.pickup_signature and not ",AAAASUVO" in order.pickup_signature %}
+                        <span class="badge bg-info">Photo Confirmation</span>
+                    {% else %}
+                        <span class="badge bg-primary">Digital Signature</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4 fw-bold">Signature/Photo:</div>
+                <div class="col-md-8">
+                    {% if order.pickup_signature %}
+                        <div class="border p-2 bg-light" style="max-width: 350px;">
+                            <img src="{{ order.pickup_signature }}" alt="Signature" class="img-fluid" style="max-width: 300px; max-height: 150px;">
+                        </div>
+                    {% else %}
+                        <span class="text-muted">No signature available</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% set pickup_activity = order.activities|selectattr('activity_type', 'equalto', 'order_pickup')|list|first %}
+            {% if pickup_activity %}
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Recorded By:</div>
+                    <div class="col-md-8">
+                        {{ pickup_activity.user.username }} ({{ pickup_activity.created_at.strftime('%Y-%m-%d %H:%M') }})
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-info mb-0">
+                <i class="bi bi-info-circle me-2"></i> This order has not been picked up yet.
+            </div>
+            
+            {% if order.status == 'completed' %}
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('order_pickup', order_id=order.id) }}" class="btn btn-primary">
+                        <i class="bi bi-box-seam me-1"></i> Record Pickup Now
+                    </a>
+                    <a href="{{ url_for('basic_pickup.basic_pickup', order_id=order.id) }}" class="btn btn-success ms-2">
+                        <i class="bi bi-box-seam me-1"></i> Simple Pickup (Try This)
+                    </a>
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
